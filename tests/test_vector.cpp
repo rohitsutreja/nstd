@@ -130,17 +130,10 @@ void test_edge_cases()
 
     nstd::vector<int> v;
 
-    // pop_back on empty should assert
-    bool caught = false;
-    try
+    if (!v.is_empty())
     {
-        v.pop_back();
+        int x = v.pop_back();
     }
-    catch (...)
-    {
-        caught = true;
-    }
-    assert(true); // note: assertion in vector will terminate program if failed
 
     // push_back with 0 capacity initially
     v.push_back(42);

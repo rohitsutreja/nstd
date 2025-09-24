@@ -92,7 +92,15 @@ namespace nstd
         {
             if (length < capacity)
             {
-                reserve(length);
+                auto *new_memory{new T[length]};
+                for (size_t i{}; i < length; ++i)
+                {
+                    new_memory[i] = std::move(data[i]);
+                }
+
+                delete[] data;
+                data = new_memory;
+                capacity = length;
             }
         }
 
