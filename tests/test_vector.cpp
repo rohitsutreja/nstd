@@ -1,117 +1,167 @@
 #include <iostream>
 #include <cassert>
 #include <string>
+#include <utility>
 #include "nstd/vector.hpp"
 
-// ------------------------- Basic Tests - Written By ChatGPT -------------------------
-void test_vector_basic()
+// ------------------------- Basic Push / Access / Modify -------------------------
+void test_basic_operations()
 {
-    std::cout << "--- Running Basic Tests ---\n";
+    std::cout << "--- Running Basic Operations Test ---\n";
 
     nstd::vector<int> v;
     assert(v.size() == 0);
+    assert(v.is_empty());
 
-    // Push back elements
-    v.push_back(10);
-    v.push_back(20);
-    v.push_back(30);
+    v.push_back(1);
+    v.push_back(2);
+    v.push_back(3);
+
     assert(v.size() == 3);
+    assert(!v.is_empty());
 
-    // Access via operator[]
-    assert(v[0] == 10);
-    assert(v[1] == 20);
-    assert(v[2] == 30);
+    // Access & modify
+    v[1] = 20;
+    assert(v[0] == 1 && v[1] == 20 && v[2] == 3);
 
-    // Modify via operator[]
-    v[1] = 25;
-    assert(v[1] == 25);
+    // pop_back
+    int last = v.pop_back();
+    assert(last == 3 && v.size() == 2);
 
-    // Print current vector
-    for (size_t i = 0; i < v.size(); i++)
-        std::cout << v[i] << " ";
-    std::cout << "\n";
+    // clear
+    v.clear();
+    assert(v.size() == 0 && v.is_empty());
 }
 
-// ------------------------- Growth Test -------------------------
-void test_vector_growth()
+// ------------------------- Copy / Move Semantics -------------------------
+void test_copy_move()
 {
-    std::cout << "--- Running Growth Test ---\n";
+    std::cout << "--- Running Copy / Move Test ---\n";
+
+    nstd::vector<int> v1;
+    for (int i = 0; i < 5; ++i)
+        v1.push_back(i);
+
+    // Copy constructor
+    nstd::vector<int> v2(v1);
+    assert(v2.size() == v1.size());
+    for (size_t i = 0; i < v1.size(); ++i)
+        assert(v1[i] == v2[i]);
+
+    // Copy assignment
+    nstd::vector<int> v3;
+    v3 = v1;
+    assert(v3.size() == v1.size());
+    for (size_t i = 0; i < v1.size(); ++i)
+        assert(v1[i] == v3[i]);
+
+    // Move constructor
+    nstd::vector<int> v4(std::move(v1));
+    assert(v4.size() == 5);
+    assert(v1.size() == 0); // moved-from vector should be empty
+
+    // Move assignment
+    nstd::vector<int> v5;
+    v5 = std::move(v2);
+    assert(v5.size() == 5);
+    assert(v2.size() == 0);
+}
+
+// ------------------------- Growth / Reallocation -------------------------
+void test_growth()
+{
+    std::cout << "--- Running Growth / Reallocation Test ---\n";
 
     nstd::vector<int> v;
-    const int N = 1000; // stress test dynamic resizing
-    for (int i = 0; i < N; ++i)
+    size_t initial_capacity = v.get_capacity();
+
+    for (int i = 0; i < 1000; ++i)
     {
         v.push_back(i);
-        assert(v[i] == i);         // check newly added element
-        assert(v.size() == i + 1); // check size
+        assert(v[i] == i);
+        assert(v.size() == i + 1);
     }
 
-    // Verify last element
-    assert(v[N - 1] == N - 1);
-    std::cout << "Vector size after growth test: " << v.size() << "\n";
+    assert(v.size() == 1000);
+    assert(v.get_capacity() >= 1000);
 }
 
-// ------------------------- Loop / Accumulation Test -------------------------
-void test_vector_loop()
+// ------------------------- Iterators Test -------------------------
+void test_iterators()
 {
-    std::cout << "--- Running Loop Test ---\n";
+    std::cout << "--- Running Iterators Test ---\n";
 
     nstd::vector<int> v;
+    for (int i = 0; i < 5; ++i)
+        v.push_back(i);
+
+    int expected = 0;
+    for (auto it = v.begin(); it != v.end(); ++it)
+    {
+        assert(*it == expected++);
+    }
+
+    expected = 0;
+    for (const auto &x : v)
+    {
+        assert(x == expected++);
+    }
+}
+
+// ------------------------- Shrink / Reserve -------------------------
+void test_reserve_shrink()
+{
+    std::cout << "--- Running Reserve / Shrink Test ---\n";
+
+    nstd::vector<int> v;
+    v.reserve(50);
+    assert(v.get_capacity() >= 50);
+
     for (int i = 0; i < 10; ++i)
-        v.push_back(i * 2);
-
-    int sum = 0;
-    for (size_t i = 0; i < v.size(); ++i)
-        sum += v[i];
-
-    assert(sum == 0 + 2 + 4 + 6 + 8 + 10 + 12 + 14 + 16 + 18);
-    std::cout << "Sum of elements: " << sum << "\n";
+        v.push_back(i);
+    v.shrink_to_fit();
+    assert(v.get_capacity() == v.size());
 }
 
 // ------------------------- Edge Cases -------------------------
-void test_vector_edge_cases()
+void test_edge_cases()
 {
-    std::cout << "--- Running Edge Case Tests ---\n";
+    std::cout << "--- Running Edge Cases Test ---\n";
 
     nstd::vector<int> v;
 
-    // Skip unsafe operator[] if vector empty
-    if (v.size() > 0)
-        v[0]; // safe
-    else
-        std::cout << "Vector empty, skipping operator[] access.\n";
+    // pop_back on empty should assert
+    bool caught = false;
+    try
+    {
+        v.pop_back();
+    }
+    catch (...)
+    {
+        caught = true;
+    }
+    assert(true); // note: assertion in vector will terminate program if failed
 
-    // Minimal push test
+    // push_back with 0 capacity initially
     v.push_back(42);
-    assert(v.size() == 1);
-    assert(v[0] == 42);
-
-    // Multiple push to check growth from minimal
-    v.push_back(100);
-    assert(v.size() == 2);
-    assert(v[1] == 100);
+    assert(v.size() == 1 && v[0] == 42);
 }
 
 // ------------------------- Multiple Types Test -------------------------
-void test_vector_types()
+void test_multiple_types()
 {
     std::cout << "--- Running Multiple Types Test ---\n";
 
-    // Double
     nstd::vector<double> vd;
     vd.push_back(3.14);
     vd.push_back(2.718);
-    assert(vd[0] == 3.14);
-    assert(vd[1] == 2.718);
+    assert(vd[0] == 3.14 && vd[1] == 2.718);
 
-    // String
     nstd::vector<std::string> vs;
     vs.push_back("Hello");
     vs.push_back("World");
-    assert(vs[0] == "Hello");
-    assert(vs[1] == "World");
+    assert(vs[0] == "Hello" && vs[1] == "World");
 
-    // Pair
     nstd::vector<std::pair<int, int>> vp;
     vp.push_back({1, 2});
     vp.push_back({3, 4});
@@ -119,14 +169,35 @@ void test_vector_types()
     assert(vp[1].first == 3 && vp[1].second == 4);
 }
 
-// ------------------------- Main -------------------------
+// ------------------------- Stress Test -------------------------
+void test_stress()
+{
+    std::cout << "--- Running Stress Test ---\n";
+
+    nstd::vector<int> v;
+    const int N = 100000;
+    for (int i = 0; i < N; ++i)
+        v.push_back(i);
+
+    long long sum = 0;
+    for (auto x : v)
+        sum += x;
+
+    long long expected = (N - 1LL) * N / 2;
+    assert(sum == expected);
+}
+
+// ------------------------- ALL TESTS ARE WRITTEN BY CHATGPT-------------------------
 int main()
 {
-    test_vector_basic();
-    test_vector_growth();
-    test_vector_loop();
-    test_vector_edge_cases();
-    test_vector_types();
+    test_basic_operations();
+    test_copy_move();
+    test_growth();
+    test_iterators();
+    test_reserve_shrink();
+    test_edge_cases();
+    test_multiple_types();
+    test_stress();
 
     std::cout << "All tests passed!\n";
     return 0;

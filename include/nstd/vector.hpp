@@ -6,12 +6,75 @@ namespace nstd
     class vector
     {
     public:
-        vector() : data{nullptr}, capacity{0}, length{0} {}
+        // Default constructor
+        vector() : data{nullptr},
+                   capacity{0},
+                   length{0} {}
+
+        vector(const vector &other) : data{new T[other.capacity]},
+                                      capacity{other.capacity},
+                                      length{other.length}
+        {
+            for (size_t i{}; i < length; ++i)
+            {
+                data[i] = other.data[i];
+            }
+        }
+
+        vector(vector &&other) : data{other.data},
+                                 capacity{other.capacity},
+                                 length{other.length}
+        {
+            other.data = nullptr;
+            other.capacity = 0;
+            other.length = 0;
+        }
+
+        ~vector()
+        {
+            clear();
+            delete[] data;
+        }
+
+        vector &operator=(vector other)
+        {
+            swap(*this, other);
+            return *this;
+        }
+
+        T &operator[](const size_t index)
+        {
+            assert(index < length);
+            return data[index];
+        }
+
+        const T &operator[](const size_t index) const
+        {
+            assert(index < length);
+            return data[index];
+        }
+
+        size_t size() const
+        {
+            return length;
+        }
+
+        bool is_empty() const
+        {
+            return length == 0;
+        }
+
+        size_t get_capacity() const
+        {
+            return capacity;
+        }
 
         void reserve(size_t new_capacity)
         {
             if (new_capacity <= capacity)
+            {
                 return;
+            }
 
             auto *new_memory{new T[new_capacity]};
             for (size_t i{}; i < length; ++i)
@@ -25,9 +88,16 @@ namespace nstd
             capacity = new_capacity;
         }
 
+        void shrink_to_fit()
+        {
+            if (length < capacity)
+            {
+                reserve(length);
+            }
+        }
+
         void push_back(const T &element)
         {
-            // if array is full, make some space
             if (length >= capacity)
             {
                 _reallocate();
@@ -38,7 +108,6 @@ namespace nstd
 
         void push_back(T &&element)
         {
-            // if array is full, make some space
             if (length >= capacity)
             {
                 _reallocate();
@@ -65,40 +134,41 @@ namespace nstd
             length = 0;
         }
 
-        T &operator[](const size_t index)
+        // Iterators
+        T *begin()
         {
-            assert(index < length);
-            return data[index];
+            return data;
         }
 
-        const T &operator[](const size_t index) const
+        T *end()
         {
-            assert(index < length);
-            return data[index];
+            return data + length;
         }
 
-        size_t size() const
+        const T *begin() const
         {
-            return length;
+            return data;
         }
 
-        size_t get_capacity() const
+        const T *end() const
         {
-            return capacity;
+            return data + length;
         }
 
-        ~vector()
+        // Friend functions
+        friend void swap(vector &a, vector &b) noexcept
         {
-            delete[] data;
+            std::swap(a.data, b.data);
+            std::swap(a.capacity, b.capacity);
+            std::swap(a.length, b.length);
         }
 
     private:
         void _reallocate()
         {
             auto new_capacity{capacity ? capacity * 2 : 1};
-
             reserve(new_capacity);
-        };
+        }
 
         T *data{};
         size_t capacity{};
