@@ -4,7 +4,10 @@ project(nstd LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Library (header-only)
+# Header-only library
 add_library(nstd INTERFACE)
 target_include_directories(nstd INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# Enable testing
+enable_testing()
+add_subdirectory(tests)
