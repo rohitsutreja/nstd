@@ -8,6 +8,23 @@ namespace nstd
     public:
         vector() : data{nullptr}, capacity{0}, length{0} {}
 
+        void reserve(size_t new_capacity)
+        {
+            if (new_capacity <= capacity)
+                return;
+
+            auto *new_memory{new T[new_capacity]};
+            for (size_t i{}; i < length; ++i)
+            {
+                new_memory[i] = std::move(data[i]);
+            }
+
+            delete[] data;
+
+            data = new_memory;
+            capacity = new_capacity;
+        }
+
         void push_back(const T &element)
         {
             // if array is full, make some space
@@ -30,10 +47,44 @@ namespace nstd
             data[length++] = std::move(element);
         }
 
+        T pop_back()
+        {
+            assert(length >= 1);
+
+            auto element{std::move(data[--length])};
+            data[length].~T();
+            return element;
+        }
+
+        void clear()
+        {
+            for (size_t i{}; i < length; ++i)
+            {
+                data[i].~T();
+            }
+            length = 0;
+        }
+
         T &operator[](const size_t index)
         {
-            assert(index >= 0 || index < length);
+            assert(index < length);
             return data[index];
+        }
+
+        const T &operator[](const size_t index) const
+        {
+            assert(index < length);
+            return data[index];
+        }
+
+        size_t size() const
+        {
+            return length;
+        }
+
+        size_t get_capacity() const
+        {
+            return capacity;
         }
 
         ~vector()
@@ -44,20 +95,9 @@ namespace nstd
     private:
         void _reallocate()
         {
-            auto old_capacity{capacity};
-            auto new_capacity{old_capacity ? old_capacity * 2 : 1};
+            auto new_capacity{capacity ? capacity * 2 : 1};
 
-            auto new_memory{new T[new_capacity]};
-
-            for (int i{}; i < length; ++i)
-            {
-                new_memory[i] = data[i];
-            }
-
-            delete[] data;
-
-            data = new_memory;
-            capacity = new_capacity;
+            reserve(new_capacity);
         };
 
         T *data{};
