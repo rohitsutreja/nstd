@@ -86,14 +86,14 @@ namespace nstd
             return _capacity;
         }
 
-        void reserve(size_t new__capacity)
+        void reserve(size_t new_capacity)
         {
-            if (new__capacity <= _capacity)
+            if (new_capacity <= _capacity)
             {
                 return;
             }
 
-            auto *new_memory{new T[new__capacity]};
+            auto *new_memory{new T[new_capacity]};
 
             try
             {
@@ -168,7 +168,7 @@ namespace nstd
         void pop_back()
         {
             assert(_length >= 1);
-            _data[--_length].~T();
+            --_length;
         }
 
         T &front()
@@ -187,10 +187,6 @@ namespace nstd
 
         void clear()
         {
-            for (size_t i{}; i < _length; ++i)
-            {
-                _data[i].~T();
-            }
             _length = 0;
         }
 
