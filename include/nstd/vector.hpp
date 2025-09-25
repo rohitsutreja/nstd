@@ -12,13 +12,28 @@ namespace nstd
                    _length{0} {}
 
         // copy constructor
-        vector(const vector &other) : _data{new T[other._capacity]},
-                                      _capacity{other._capacity},
-                                      _length{other._length}
+        vector(const vector &other) : vector()
         {
-            for (size_t i{}; i < _length; ++i)
+            if (other._length <= 0)
             {
-                _data[i] = other._data[i];
+                return;
+            }
+
+            _data = new T[other._capacity];
+            _capacity = other._capacity;
+
+            try
+            {
+                for (size_t i{}; i < other._length; ++i)
+                {
+                    _data[i] = other._data[i];
+                    ++_length;
+                }
+            }
+            catch (...)
+            {
+                delete[] _data;
+                throw;
             }
         }
 
@@ -34,7 +49,6 @@ namespace nstd
         // destructor
         ~vector()
         {
-            clear();
             delete[] _data;
         }
 
@@ -80,9 +94,26 @@ namespace nstd
             }
 
             auto *new_memory{new T[new__capacity]};
-            for (size_t i{}; i < _length; ++i)
+
+            try
             {
-                new_memory[i] = std::move(_data[i]);
+                for (size_t i{}; i < _length; ++i)
+                {
+                    // We only use move if is noexcept, beacuse if move throws our vector will loose values already moved.
+                    if constexpr (std::is_nothrow_move_constructible_v<T>)
+                    {
+                        new_memory[i] = std::move(_data[i]);
+                    }
+                    else
+                    {
+                        new_memory[i] = _data[i];
+                    }
+                }
+            }
+            catch (...)
+            {
+                delete[] new_memory;
+                throw;
             }
 
             delete[] _data;
@@ -185,8 +216,8 @@ namespace nstd
             reserve(new_capacity);
         }
 
-        T *_data{};
         size_t _capacity{};
         size_t _length{};
+        T *_data{};
     };
 }
