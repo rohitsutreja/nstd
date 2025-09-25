@@ -7,35 +7,38 @@ namespace nstd
     {
     public:
         // Default constructor
-        vector() : data{nullptr},
-                   capacity{0},
-                   length{0} {}
+        vector() : _data{nullptr},
+                   _capacity{0},
+                   _length{0} {}
 
-        vector(const vector &other) : data{new T[other.capacity]},
-                                      capacity{other.capacity},
-                                      length{other.length}
+        // copy constructor
+        vector(const vector &other) : _data{new T[other._capacity]},
+                                      _capacity{other._capacity},
+                                      _length{other._length}
         {
-            for (size_t i{}; i < length; ++i)
+            for (size_t i{}; i < _length; ++i)
             {
-                data[i] = other.data[i];
+                _data[i] = other._data[i];
             }
         }
 
-        vector(vector &&other) : data{other.data},
-                                 capacity{other.capacity},
-                                 length{other.length}
+        vector(vector &&other) : _data{other._data},
+                                 _capacity{other._capacity},
+                                 _length{other._length}
         {
-            other.data = nullptr;
-            other.capacity = 0;
-            other.length = 0;
+            other._data = nullptr;
+            other._capacity = 0;
+            other._length = 0;
         }
 
+        // destructor
         ~vector()
         {
             clear();
-            delete[] data;
+            delete[] _data;
         }
 
+        // copy and move assignment
         vector &operator=(vector other)
         {
             swap(*this, other);
@@ -44,142 +47,146 @@ namespace nstd
 
         T &operator[](const size_t index)
         {
-            assert(index < length);
-            return data[index];
+            assert(index < _length);
+            return _data[index];
         }
 
         const T &operator[](const size_t index) const
         {
-            assert(index < length);
-            return data[index];
+            assert(index < _length);
+            return _data[index];
         }
 
         size_t size() const
         {
-            return length;
+            return _length;
         }
 
         bool is_empty() const
         {
-            return length == 0;
+            return _length == 0;
         }
 
         size_t get_capacity() const
         {
-            return capacity;
+            return _capacity;
         }
 
-        void reserve(size_t new_capacity)
+        void reserve(size_t new__capacity)
         {
-            if (new_capacity <= capacity)
+            if (new__capacity <= _capacity)
             {
                 return;
             }
 
-            auto *new_memory{new T[new_capacity]};
-            for (size_t i{}; i < length; ++i)
+            auto *new_memory{new T[new__capacity]};
+            for (size_t i{}; i < _length; ++i)
             {
-                new_memory[i] = std::move(data[i]);
+                new_memory[i] = std::move(_data[i]);
             }
 
-            delete[] data;
+            delete[] _data;
 
-            data = new_memory;
-            capacity = new_capacity;
+            _data = new_memory;
+            _capacity = new__capacity;
         }
 
         void shrink_to_fit()
         {
-            if (length < capacity)
+            if (_length == 0)
             {
-                auto *new_memory{new T[length]};
-                for (size_t i{}; i < length; ++i)
+                delete[] _data;
+                _capacity = 0;
+                _length = 0;
+            }
+
+            if (_length < _capacity)
+            {
+                auto *new_memory{new T[_length]};
+                for (size_t i{}; i < _length; ++i)
                 {
-                    new_memory[i] = std::move(data[i]);
+                    new_memory[i] = std::move(_data[i]);
                 }
 
-                delete[] data;
-                data = new_memory;
-                capacity = length;
+                delete[] _data;
+                _data = new_memory;
+                _capacity = _length;
             }
         }
 
         void push_back(const T &element)
         {
-            if (length >= capacity)
+            if (_length == _capacity)
             {
                 _reallocate();
             }
 
-            data[length++] = element;
+            _data[_length++] = element;
         }
 
         void push_back(T &&element)
         {
-            if (length >= capacity)
+            if (_length == _capacity)
             {
                 _reallocate();
             }
 
-            data[length++] = std::move(element);
+            _data[_length++] = std::move(element);
         }
 
-        T pop_back()
+        void pop_back()
         {
-            assert(length >= 1);
+            assert(_length >= 1);
+            _data[--_length].~T();
+        }
 
-            auto element{std::move(data[--length])};
-            data[length].~T();
-            return element;
+        T &front()
+        {
+            assert(_length >= 1);
+
+            return _data[0];
+        }
+
+        T &back()
+        {
+            assert(_length >= 1);
+
+            return _data[_length - 1];
         }
 
         void clear()
         {
-            for (size_t i{}; i < length; ++i)
+            for (size_t i{}; i < _length; ++i)
             {
-                data[i].~T();
+                _data[i].~T();
             }
-            length = 0;
+            _length = 0;
         }
 
         // Iterators
-        T *begin()
-        {
-            return data;
-        }
+        T *begin() noexcept { return _data; }
+        T *end() noexcept { return _data + _length; }
+        const T *begin() const noexcept { return _data; }
+        const T *end() const noexcept { return _data + _length; }
+        const T *cbegin() const noexcept { return _data; }
+        const T *cend() const noexcept { return _data + _length; }
 
-        T *end()
-        {
-            return data + length;
-        }
-
-        const T *begin() const
-        {
-            return data;
-        }
-
-        const T *end() const
-        {
-            return data + length;
-        }
-
-        // Friend functions
         friend void swap(vector &a, vector &b) noexcept
         {
-            std::swap(a.data, b.data);
-            std::swap(a.capacity, b.capacity);
-            std::swap(a.length, b.length);
+            std::swap(a._data, b._data);
+            std::swap(a._capacity, b._capacity);
+            std::swap(a._length, b._length);
         }
 
     private:
         void _reallocate()
         {
-            auto new_capacity{capacity ? capacity * 2 : 1};
+            auto new_capacity{_capacity ? _capacity * 2 : 1};
             reserve(new_capacity);
         }
 
-        T *data{};
-        size_t capacity{};
-        size_t length{};
+        T *_data{};
+        size_t _capacity{};
+        size_t _length{};
     };
 }
