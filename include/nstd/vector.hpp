@@ -1,4 +1,7 @@
 #include <cassert>
+#include <utility>
+#include <stdexcept>
+#include <type_traits>
 
 namespace nstd
 {
@@ -19,8 +22,8 @@ namespace nstd
                 return;
             }
 
-            _data = new T[other._capacity];
-            _capacity = other._capacity;
+            _data = new T[other._length];
+            _capacity = other._length;
 
             try
             {
@@ -71,6 +74,20 @@ namespace nstd
             return _data[index];
         }
 
+        T &at(size_t index)
+        {
+            if (index >= _length)
+                throw std::out_of_range("vector index out of range");
+            return _data[index];
+        }
+
+        const T &at(size_t index) const
+        {
+            if (index >= _length)
+                throw std::out_of_range("vector index out of range");
+            return _data[index];
+        }
+
         size_t size() const
         {
             return _length;
@@ -99,7 +116,7 @@ namespace nstd
             {
                 for (size_t i{}; i < _length; ++i)
                 {
-                    // We only use move if is noexcept, beacuse if move throws our vector will loose values already moved.
+                    // We only use move if is noexcept, because if move throws our vector will loose values already moved.
                     if constexpr (std::is_nothrow_move_constructible_v<T>)
                     {
                         new_memory[i] = std::move(_data[i]);
@@ -119,7 +136,7 @@ namespace nstd
             delete[] _data;
 
             _data = new_memory;
-            _capacity = new__capacity;
+            _capacity = new_capacity;
         }
 
         void shrink_to_fit()
@@ -127,16 +144,35 @@ namespace nstd
             if (_length == 0)
             {
                 delete[] _data;
+                _data = nullptr;
                 _capacity = 0;
                 _length = 0;
+                return;
             }
 
             if (_length < _capacity)
             {
                 auto *new_memory{new T[_length]};
-                for (size_t i{}; i < _length; ++i)
+
+                try
                 {
-                    new_memory[i] = std::move(_data[i]);
+                    for (size_t i{}; i < _length; ++i)
+                    {
+                        // Use move only if noexcept to avoid partial moves on exceptions
+                        if constexpr (std::is_nothrow_move_constructible_v<T>)
+                        {
+                            new_memory[i] = std::move(_data[i]);
+                        }
+                        else
+                        {
+                            new_memory[i] = _data[i];
+                        }
+                    }
+                }
+                catch (...)
+                {
+                    delete[] new_memory;
+                    throw;
                 }
 
                 delete[] _data;
@@ -185,8 +221,26 @@ namespace nstd
             return _data[_length - 1];
         }
 
+        const T &front() const
+        {
+            assert(_length >= 1);
+
+            return _data[0];
+        }
+
+        const T &back() const
+        {
+            assert(_length >= 1);
+
+            return _data[_length - 1];
+        }
+
         void clear()
         {
+            for (size_t i = _length; i > 0; --i)
+            {
+                _data[i - 1].~T();
+            }
             _length = 0;
         }
 
