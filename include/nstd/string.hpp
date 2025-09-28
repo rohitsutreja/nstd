@@ -45,17 +45,21 @@ namespace nstd
             _length = len;
         }
 
-        basic_string(const basic_string &other) : basic_string() {
-            if(other._length == 0){
+        basic_string(const basic_string &other) : basic_string()
+        {
+            if (other._length == 0)
+            {
                 return;
             }
 
-            auto* temp{new CharT[other._length]};
+            auto *temp{new CharT[other._length]};
 
-            try{
+            try
+            {
                 std::copy(other._data, other._data + other._length, temp);
             }
-            catch(...){
+            catch (...)
+            {
                 delete[] temp;
                 throw;
             }
@@ -73,8 +77,40 @@ namespace nstd
             other._length = 0;
         }
 
-        basic_string& operator=(basic_string other){
+        basic_string &operator=(basic_string other)
+        {
             swap(*this, other);
+            return *this;
+        }
+
+        basic_string &operator=(const CharT *str)
+        {
+            if (!str || str[0] == charT{})
+            {
+                delete[] _data;
+                _data = nullptr;
+                _length = 0;
+                return *this;
+            }
+
+            size_t len{};
+            while (str[len])
+            {
+                ++len;
+            }
+            auto *temp{new CharT[len]};
+            try
+            {
+                std::copy(str, str + len, temp);
+            }
+            catch (...)
+            {
+                delete[] temp;
+                throw;
+            }
+            delete[] _data;
+            _data = temp;
+            _length = len;
             return *this;
         }
 
@@ -83,7 +119,8 @@ namespace nstd
             delete[] _data;
         }
 
-        friend void swap(basic_string& lhs, basic_string& rhs) noexcept {
+        friend void swap(basic_string &lhs, basic_string &rhs) noexcept
+        {
             std::swap(lhs._data, rhs._data);
             std::swap(lhs._length, rhs._length);
         }
