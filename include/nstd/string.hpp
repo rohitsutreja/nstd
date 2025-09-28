@@ -29,11 +29,11 @@ namespace nstd
                 ++len;
             }
 
-            auto *temp{new CharT[len]};
+            auto *temp{new CharT[len + 1]};
 
             try
             {
-                std::copy(str, str + len, temp);
+                std::copy(str, str + len + 1, temp);
             }
             catch (...)
             {
@@ -52,11 +52,11 @@ namespace nstd
                 return;
             }
 
-            auto *temp{new CharT[other._length]};
+            auto *temp{new CharT[other._length + 1]};
 
             try
             {
-                std::copy(other._data, other._data + other._length, temp);
+                std::copy(other._data, other._data + other._length + 1, temp);
             }
             catch (...)
             {
@@ -85,7 +85,7 @@ namespace nstd
 
         basic_string &operator=(const CharT *str)
         {
-            if (!str || str[0] == charT{})
+            if (!str)
             {
                 delete[] _data;
                 _data = nullptr;
@@ -98,10 +98,11 @@ namespace nstd
             {
                 ++len;
             }
-            auto *temp{new CharT[len]};
+            
+            auto *temp{new CharT[len + 1]};
             try
             {
-                std::copy(str, str + len, temp);
+                std::copy(str, str + len + 1, temp);
             }
             catch (...)
             {
