@@ -210,28 +210,24 @@ namespace nstd
         T &front()
         {
             assert(_length >= 1);
-
             return _data[0];
         }
 
         T &back()
         {
             assert(_length >= 1);
-
             return _data[_length - 1];
         }
 
         const T &front() const
         {
             assert(_length >= 1);
-
             return _data[0];
         }
 
         const T &back() const
         {
             assert(_length >= 1);
-
             return _data[_length - 1];
         }
 
@@ -251,6 +247,9 @@ namespace nstd
         const T *end() const noexcept { return _data + _length; }
         const T *cbegin() const noexcept { return _data; }
         const T *cend() const noexcept { return _data + _length; }
+
+        T* data() noexcept { return _data; }
+        const T* data() const noexcept { return _data; }
 
         friend void swap(vector &a, vector &b) noexcept
         {
