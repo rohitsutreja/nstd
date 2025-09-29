@@ -1,3 +1,6 @@
+#ifndef NSTD_STRING_HPP
+#define NSTD_STRING_HPP
+
 #include <cstddef>
 #include <algorithm>
 #include <iterator>
@@ -329,3 +332,5 @@ namespace nstd
     using string = basic_string<char>;
 
 } // namespace nstd
+
+#endif // NSTD_STRING_HPP

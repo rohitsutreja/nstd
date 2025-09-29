@@ -1,10 +1,15 @@
+#ifndef TESTS_STRING_HPP
+#define TESTS_STRING_HPP
+
 #include <iostream>
 #include <cassert>
 #include <string>
 #include <utility>
 #include <sstream>
 #include <stdexcept>
-#include "nstd/string.hpp" // Assuming your string is in this header
+#include <chrono>
+#include "nstd/vector.hpp"
+#include "nstd/string.hpp"
 
 namespace tests
 {
@@ -512,32 +517,92 @@ namespace tests
             nstd::string s("Hello");
             assert(s.size() == 5);
         }
+
+        // ------------------------- Performance Comparison Tests -------------------------
+        void test_performance_comparison()
+        {
+            std::cout << "--- Running Performance Comparison Tests ---\n";
+
+            const int N = 100000;
+
+            // nstd::string push_back
+            auto start = std::chrono::high_resolution_clock::now();
+            nstd::string nstd_s;
+            for (int i = 0; i < N; ++i)
+            {
+                nstd_s.push_back('a' + (i % 26));
+            }
+            auto end = std::chrono::high_resolution_clock::now();
+            auto nstd_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "nstd::string push_back " << N << " chars: " << nstd_time << " ms\n";
+
+            // std::string push_back
+            start = std::chrono::high_resolution_clock::now();
+            std::string std_s;
+            for (int i = 0; i < N; ++i)
+            {
+                std_s.push_back('a' + (i % 26));
+            }
+            end = std::chrono::high_resolution_clock::now();
+            auto std_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "std::string push_back " << N << " chars: " << std_time << " ms\n";
+
+            // nstd::string append
+            start = std::chrono::high_resolution_clock::now();
+            nstd::string nstd_s2;
+            for (int i = 0; i < 10000; ++i)
+            {
+                nstd_s2.append("test");
+            }
+            end = std::chrono::high_resolution_clock::now();
+            nstd_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "nstd::string append 'test' 10000 times: " << nstd_time << " ms\n";
+
+            // std::string append
+            start = std::chrono::high_resolution_clock::now();
+            std::string std_s2;
+            for (int i = 0; i < 10000; ++i)
+            {
+                std_s2.append("test");
+            }
+            end = std::chrono::high_resolution_clock::now();
+            std_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "std::string append 'test' 10000 times: " << std_time << " ms\n";
+        }
+    }
+
+    namespace vector_performance
+    {
+        // ------------------------- Vector Performance Comparison -------------------------
+        void test_vector_performance()
+        {
+            std::cout << "--- Running Vector Performance Comparison ---\n";
+
+            const int N = 100000;
+
+            // nstd::vector push_back
+            auto start = std::chrono::high_resolution_clock::now();
+            nstd::vector<int> nstd_v;
+            for (int i = 0; i < N; ++i)
+            {
+                nstd_v.push_back(i);
+            }
+            auto end = std::chrono::high_resolution_clock::now();
+            auto nstd_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "nstd::vector push_back " << N << " ints: " << nstd_time << " ms\n";
+
+            // std::vector push_back
+            start = std::chrono::high_resolution_clock::now();
+            std::vector<int> std_v;
+            for (int i = 0; i < N; ++i)
+            {
+                std_v.push_back(i);
+            }
+            end = std::chrono::high_resolution_clock::now();
+            auto std_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "std::vector push_back " << N << " ints: " << std_time << " ms\n";
+        }
     }
 }
-// ------------------------- Main Test Runner -------------------------
-int main()
-{
-    using namespace ::tests::string;
-    std::cout << "=== Running Comprehensive basic_string Tests ===\n\n";
 
-    test_construction();
-    test_assignment();
-    test_element_access();
-    test_capacity();
-    test_modifiers();
-    test_growth();
-    test_iterators();
-    test_comparisons();
-    test_stream_operations();
-    test_memory_safety();
-    test_edge_cases();
-    test_swap();
-    test_exception_safety();
-    test_stress();
-    test_type_aliases();
-
-    std::cout << "\n=== All basic_string tests passed! ===\n";
-    std::cout << "Your basic_string implementation is robust and ready for use!\n";
-
-    return 0;
-}
+#endif // TESTS_STRING_HPP

@@ -1,3 +1,6 @@
+#ifndef NSTD_VECTOR_HPP
+#define NSTD_VECTOR_HPP
+
 #include <cassert>
 #include <utility>
 #include <stdexcept>
@@ -270,3 +273,5 @@ namespace nstd
         T *_data{};
     };
 }
+
+#endif // NSTD_VECTOR_HPP

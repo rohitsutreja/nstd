@@ -1,3 +1,6 @@
+#ifndef TESTS_VECTOR_HPP
+#define TESTS_VECTOR_HPP
+
 #include <iostream>
 #include <cassert>
 #include <string>
@@ -183,23 +186,7 @@ namespace tests
             long long expected = (N - 1LL) * N / 2;
             assert(sum == expected);
         }
-
     }
 }
-// ------------------------- ALL TESTS ARE WRITTEN BY CHATGPT-------------------------
-int main()
-{
-    using namespace tests::vector;
 
-    test_basic_operations();
-    test_copy_move();
-    test_growth();
-    test_iterators();
-    test_reserve_shrink();
-    test_edge_cases();
-    test_multiple_types();
-    test_stress();
-
-    std::cout << "All tests passed!\n";
-    return 0;
-}
+#endif // TESTS_VECTOR_HPP
