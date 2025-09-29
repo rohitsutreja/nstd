@@ -1,6 +1,7 @@
 #include "test_vector.hpp"
 #include "test_string.hpp"
 #include "test_list.hpp"
+#include "test_stack.hpp"
 
 // ------------------------- Main Test Runner -------------------------
 int main()
@@ -43,6 +44,13 @@ int main()
     tests::string::test_exception_safety();
     tests::string::test_stress();
     tests::string::test_type_aliases();
+
+    std::cout << "\n=== Stack Tests ===\n";
+    tests::stack::test_basic_operations();
+    tests::stack::test_const_top();
+    tests::stack::test_copy_move();
+    tests::stack::test_multiple_types();
+    tests::stack::test_stress();
 
     std::cout << "\n=== All nstd tests passed! ===\n";
     std::cout << "Your nstd implementations are robust and ready for use!\n";
