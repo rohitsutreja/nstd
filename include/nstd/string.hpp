@@ -310,6 +310,16 @@ namespace nstd
             return os << str.c_str();
         }
 
+        friend bool operator==(const basic_string &first, const basic_string &second)
+        {
+            if (first._length != second._length)
+            {
+                return false;
+            }
+
+            return std::equal(first.begin(), first.end(), second.begin());
+        }
+
     private:
         size_t _capacity{};
         size_t _length{};
