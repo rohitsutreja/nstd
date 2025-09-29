@@ -1,5 +1,6 @@
 #include "test_vector.hpp"
 #include "test_string.hpp"
+#include "test_list.hpp"
 
 // ------------------------- Main Test Runner -------------------------
 int main()
@@ -15,6 +16,16 @@ int main()
     tests::vector::test_edge_cases();
     tests::vector::test_multiple_types();
     tests::vector::test_stress();
+
+    std::cout << "\n=== List Tests ===\n";
+    tests::list::test_basic_operations();
+    tests::list::test_insert_erase();
+    tests::list::test_copy_move();
+    tests::list::test_iterators();
+    tests::list::test_swap();
+    tests::list::test_edge_cases();
+    tests::list::test_multiple_types();
+    tests::list::test_stress();
 
     std::cout << "\n=== String Tests ===\n";
     tests::string::test_construction();
