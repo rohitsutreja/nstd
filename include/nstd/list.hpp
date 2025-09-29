@@ -107,10 +107,7 @@ namespace nstd
             return temp;
         }
 
-        bool operator==(const iterator &other) const
-        {
-            return _node == other._node;
-        }
+        bool operator==(const iterator &other) const = default;
 
     private:
         Node *_node{};
@@ -159,10 +156,7 @@ namespace nstd
             return temp;
         }
 
-        bool operator==(const const_iterator &other) const
-        {
-            return _node == other._node;
-        }
+        bool operator==(const const_iterator &other) const = default;
 
     private:
         Node *_node{};
@@ -450,7 +444,6 @@ namespace nstd
         delete cur;
         --_size;
     }
-
 
     template <typename T>
     typename list<T>::iterator list<T>::begin()
