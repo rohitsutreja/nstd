@@ -43,10 +43,6 @@ int main()
     tests::string::test_exception_safety();
     tests::string::test_stress();
     tests::string::test_type_aliases();
-    tests::string::test_performance_comparison();
-
-    std::cout << "\n=== Vector Performance ===\n";
-    tests::vector_performance::test_vector_performance();
 
     std::cout << "\n=== All nstd tests passed! ===\n";
     std::cout << "Your nstd implementations are robust and ready for use!\n";

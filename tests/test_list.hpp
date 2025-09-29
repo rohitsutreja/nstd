@@ -70,10 +70,14 @@ namespace tests
             assert(l.size() == 5);
             // check order: 0,1,2,3,4
             auto it = l.begin();
-            assert(*it == 0); ++it;
-            assert(*it == 1); ++it;
-            assert(*it == 2); ++it;
-            assert(*it == 3); ++it;
+            assert(*it == 0);
+            ++it;
+            assert(*it == 1);
+            ++it;
+            assert(*it == 2);
+            ++it;
+            assert(*it == 3);
+            ++it;
             assert(*it == 4);
 
             // insert at end
@@ -90,9 +94,12 @@ namespace tests
             l.erase(2); // erase 3
             assert(l.size() == 4);
             it = l.begin();
-            assert(*it == 1); ++it;
-            assert(*it == 2); ++it;
-            assert(*it == 4); ++it;
+            assert(*it == 1);
+            ++it;
+            assert(*it == 2);
+            ++it;
+            assert(*it == 4);
+            ++it;
             assert(*it == 5);
 
             // erase at end
@@ -157,7 +164,8 @@ namespace tests
 
             // Backward iteration
             auto it = l.begin();
-            for (int i = 0; i < 4; ++i) ++it; // move to last element
+            for (int i = 0; i < 4; ++i)
+                ++it; // move to last element
             assert(*it == 4);
             --it;
             assert(*it == 3);
