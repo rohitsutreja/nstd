@@ -298,10 +298,6 @@ namespace nstd
     template <typename T>
     void vector<T>::clear()
     {
-        for (size_t i = _length; i > 0; --i)
-        {
-            _data[i - 1].~T();
-        }
         _length = 0;
     }
 
