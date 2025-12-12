@@ -69,8 +69,7 @@ namespace nstd
         T &value();
         const T &value() const;
 
-        // 'explicit' prevents accidental conversion to int (e.g., 10 + expected)
-        explicit operator bool() const noexcept;
+        explicit constexpr operator bool() const noexcept;
 
         // swap
         void swap(expected &other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>);
