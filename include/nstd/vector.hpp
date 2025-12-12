@@ -13,6 +13,7 @@ namespace nstd
     {
     public:
         vector();
+        vector(const std::initializer_list<T> &list);
         vector(const vector &other);
         vector(vector &&other) noexcept;
         ~vector();
@@ -60,6 +61,33 @@ namespace nstd
 
     template <typename T>
     vector<T>::vector() : _data{nullptr}, _capacity{0}, _length{0} {}
+
+    template <typename T>
+    vector<T>::vector(const std::initializer_list<T> &list) : vector()
+    {
+        if (list.size() <= 0)
+        {
+            return;
+        }
+        _data = new T[list.size()];
+        _capacity = list.size();
+
+        try
+        {
+            size_t i{};
+            for (auto begin{list.begin()}; begin != list.end(); begin++)
+            {
+                _data[i] = *begin;
+                ++_length;
+                ++i;
+            }
+        }
+        catch (...)
+        {
+            delete[] _data;
+            throw;
+        }
+    }
 
     template <typename T>
     vector<T>::vector(const vector &other) : vector()

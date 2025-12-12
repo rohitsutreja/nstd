@@ -3,9 +3,12 @@
 
 #include <iostream>
 #include <cassert>
-#include <string>
-#include <vector>
+#include <memory> // For std::unique_ptr
+
+// Include your custom containers
 #include "nstd/expected.hpp"
+#include "nstd/string.hpp"
+#include "nstd/vector.hpp"
 
 // Helper to assert conditions and print
 #define TEST_ASSERT(cond)                                                              \
@@ -26,18 +29,18 @@ namespace tests
             std::cout << "  Testing basic operations... ";
 
             // Value construction
-            nstd::expected<int, std::string> e1(42);
+            nstd::expected<int, nstd::string> e1(42);
             TEST_ASSERT(e1.has_value());
             TEST_ASSERT(*e1 == 42);
 
             // Error construction
-            nstd::expected<int, std::string> e2 = nstd::unexpected<std::string>("Bad Input");
+            nstd::expected<int, nstd::string> e2 = nstd::unexpected<nstd::string>("Bad Input");
             TEST_ASSERT(!e2.has_value());
             TEST_ASSERT(e2.error() == "Bad Input");
 
             // Arrow operator
-            nstd::expected<std::string, int> e3("Hello");
-            TEST_ASSERT(e3->length() == 5);
+            nstd::expected<nstd::string, int> e3("Hello");
+            TEST_ASSERT(e3->length() == 5); // Assumes nstd::string has length()
 
             std::cout << "Passed.\n";
         }
@@ -74,16 +77,17 @@ namespace tests
             std::cout << "  Testing copy semantics... ";
 
             // Copy Value
-            nstd::expected<std::vector<int>, int> original_val({1, 2, 3});
-            nstd::expected<std::vector<int>, int> copy_val = original_val;
+            // Assumes nstd::vector has an initializer list constructor
+            nstd::expected<nstd::vector<int>, int> original_val({1, 2, 3});
+            nstd::expected<nstd::vector<int>, int> copy_val = original_val;
 
             TEST_ASSERT(copy_val.has_value());
             TEST_ASSERT((*copy_val).size() == 3);
             TEST_ASSERT((*original_val).size() == 3); // Original still intact
 
             // Copy Error
-            nstd::expected<int, std::string> original_err = nstd::unexpected<std::string>("Error");
-            nstd::expected<int, std::string> copy_err = original_err;
+            nstd::expected<int, nstd::string> original_err = nstd::unexpected<nstd::string>("Error");
+            nstd::expected<int, nstd::string> copy_err = original_err;
 
             TEST_ASSERT(!copy_err.has_value());
             TEST_ASSERT(copy_err.error() == "Error");
@@ -96,20 +100,21 @@ namespace tests
         {
             std::cout << "  Testing move semantics... ";
 
-            // Move Value (std::vector)
-            std::vector<int> data = {10, 20, 30};
-            nstd::expected<std::vector<int>, int> e1(data); // Copy construct
+            // Move Value (nstd::vector)
+            nstd::vector<int> data = {10, 20, 30};
+            nstd::expected<nstd::vector<int>, int> e1(data); // Copy construct
 
-            nstd::expected<std::vector<int>, int> e2 = std::move(e1); // Move construct
+            nstd::expected<nstd::vector<int>, int> e2 = std::move(e1); // Move construct
 
             TEST_ASSERT(e2.has_value());
             TEST_ASSERT((*e2).size() == 3);
             TEST_ASSERT((*e2)[0] == 10);
-            // Original should be empty (moved from)
-            TEST_ASSERT((*e1).empty());
+
+            // Original should be empty (moved from) - Assumes nstd::vector handles move
+            TEST_ASSERT((*e1).is_empty());
 
             // Move Assignment (Error -> Value)
-            nstd::expected<std::vector<int>, int> e3 = nstd::unexpected<int>(500);
+            nstd::expected<nstd::vector<int>, int> e3 = nstd::unexpected<int>(500);
             e3 = std::move(e2); // Should destroy error 500, move vector in
 
             TEST_ASSERT(e3.has_value());
@@ -121,20 +126,20 @@ namespace tests
         // 5. Complex Types (Memory Management)
         void test_complex_types()
         {
-            std::cout << "  Testing complex types (std::string)... ";
+            std::cout << "  Testing complex types (nstd::string)... ";
 
-            using Exp = nstd::expected<std::string, std::string>;
+            using Exp = nstd::expected<nstd::string, nstd::string>;
 
             // String Value
             Exp e1("Success String");
             TEST_ASSERT(*e1 == "Success String");
 
             // String Error
-            Exp e2 = nstd::unexpected<std::string>("Error String");
+            Exp e2 = nstd::unexpected<nstd::string>("Error String");
             TEST_ASSERT(e2.error() == "Error String");
 
             // Assignment that triggers destructor
-            e1 = nstd::unexpected<std::string>("Now an error");
+            e1 = nstd::unexpected<nstd::string>("Now an error");
             TEST_ASSERT(!e1.has_value());
             TEST_ASSERT(e1.error() == "Now an error");
 
@@ -169,13 +174,14 @@ namespace tests
             std::cout << "  Testing comparisons... ";
 
             // Setup common objects
-            nstd::expected<int, std::string> val10(10);
-            nstd::expected<int, std::string> val20(20);
-            nstd::expected<int, std::string> val10_dup(10);
+            nstd::expected<int, nstd::string> val10(10);
+            nstd::expected<int, nstd::string> val20(20);
+            nstd::expected<int, nstd::string> val10_dup(10);
 
-            nstd::expected<int, std::string> errBad = nstd::unexpected<std::string>("Bad");
-            nstd::expected<int, std::string> errWorse = nstd::unexpected<std::string>("Worse");
-            nstd::expected<int, std::string> errBad_dup = nstd::unexpected<std::string>("Bad");
+            nstd::expected<int, nstd::string> errBad = nstd::unexpected<nstd::string>("Bad");
+            nstd::expected<int, nstd::string> errWorse = nstd::unexpected<nstd::string>("Worse");
+            nstd::expected<int, nstd::string> errBad_dup = nstd::unexpected<nstd::string>("Bad");
+
             // --- 1. Peer Comparison (expected == expected) ---
             // Value vs Value
             TEST_ASSERT(val10 == val10_dup); // 10 == 10
@@ -195,22 +201,22 @@ namespace tests
             TEST_ASSERT(!(errBad == 10)); // Error is never equal to a Value
 
             // Mirror Check (T == expected)
-            // (If you didn't implement the mirror operator, these lines will fail to compile)
             TEST_ASSERT(10 == val10);
             TEST_ASSERT(!(99 == val10));
 
             // --- 3. Error Comparison (expected == unexpected) ---
-            TEST_ASSERT(errBad == nstd::unexpected<std::string>("Bad"));
-            TEST_ASSERT(!(errBad == nstd::unexpected<std::string>("Worse")));
-            TEST_ASSERT(!(val10 == nstd::unexpected<std::string>("Bad"))); // Value is never equal to an Error
+            TEST_ASSERT(errBad == nstd::unexpected<nstd::string>("Bad"));
+            TEST_ASSERT(!(errBad == nstd::unexpected<nstd::string>("Worse")));
+            TEST_ASSERT(!(val10 == nstd::unexpected<nstd::string>("Bad"))); // Value is never equal to an Error
 
             // Mirror Check (unexpected == expected)
-            TEST_ASSERT(nstd::unexpected<std::string>("Bad") == errBad);
+            TEST_ASSERT(nstd::unexpected<nstd::string>("Bad") == errBad);
 
             std::cout << "Passed.\n";
         }
 
         // 8. Move-Only Types (std::unique_ptr)
+        // Note: Smart pointers are usually std:: unless you implemented nstd::unique_ptr too
         void test_move_only()
         {
             std::cout << "  Testing move-only types (unique_ptr)... ";
@@ -242,7 +248,7 @@ namespace tests
         {
             std::cout << "  Testing swap logic (all 4 cases)... ";
 
-            using Exp = nstd::expected<std::string, int>;
+            using Exp = nstd::expected<nstd::string, int>;
 
             // Case 1: Value <-> Value
             Exp v1("A");
@@ -311,10 +317,10 @@ namespace tests
         {
             std::cout << "  Testing R-value accessors... ";
 
-            nstd::expected<std::string, int> e("MoveMe");
+            nstd::expected<nstd::string, int> e("MoveMe");
 
             // This should MOVE the string out, not copy it
-            std::string s = std::move(e).value();
+            nstd::string s = std::move(e).value();
 
             TEST_ASSERT(s == "MoveMe");
 
@@ -330,7 +336,7 @@ namespace tests
             std::cout << "  Testing expected<void, E> basics... ";
 
             // 1. Default Construction (Success)
-            nstd::expected<void, std::string> e_success;
+            nstd::expected<void, nstd::string> e_success;
             TEST_ASSERT(e_success.has_value());
             TEST_ASSERT(e_success); // bool operator
 
@@ -339,12 +345,12 @@ namespace tests
             *e_success;
 
             // 2. Error Construction
-            nstd::expected<void, std::string> e_error = nstd::unexpected<std::string>("Failed");
+            nstd::expected<void, nstd::string> e_error = nstd::unexpected<nstd::string>("Failed");
             TEST_ASSERT(!e_error.has_value());
             TEST_ASSERT(e_error.error() == "Failed");
 
             // 3. Copy Construction
-            nstd::expected<void, std::string> e_copy = e_error;
+            nstd::expected<void, nstd::string> e_copy = e_error;
             TEST_ASSERT(e_copy.error() == "Failed");
 
             std::cout << "Passed.\n";
@@ -413,10 +419,10 @@ namespace tests
 
             // Case A: Stealing Value
             {
-                nstd::expected<std::string, int> e("LongStringData");
+                nstd::expected<nstd::string, int> e("LongStringData");
 
                 // std::move(e) casts to r-value -> calls value() &&
-                std::string s = std::move(e).value();
+                nstd::string s = std::move(e).value();
 
                 TEST_ASSERT(s == "LongStringData");
                 // The string inside 'e' should be moved-from (empty)
@@ -425,10 +431,10 @@ namespace tests
 
             // Case B: Stealing Error
             {
-                nstd::expected<int, std::string> e = nstd::unexpected<std::string>("ErrorData");
+                nstd::expected<int, nstd::string> e = nstd::unexpected<nstd::string>("ErrorData");
 
                 // std::move(e) casts to r-value -> calls error() &&
-                std::string s = std::move(e).error();
+                nstd::string s = std::move(e).error();
 
                 TEST_ASSERT(s == "ErrorData");
                 // The string inside 'e' should be moved-from (empty)
@@ -437,8 +443,8 @@ namespace tests
 
             // Case C: Stealing from Void Expected (Error only)
             {
-                nstd::expected<void, std::string> e = nstd::unexpected<std::string>("VoidError");
-                std::string s = std::move(e).error();
+                nstd::expected<void, nstd::string> e = nstd::unexpected<nstd::string>("VoidError");
+                nstd::string s = std::move(e).error();
                 TEST_ASSERT(s == "VoidError");
                 TEST_ASSERT(e.error().empty());
             }
