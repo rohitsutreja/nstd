@@ -33,7 +33,7 @@ namespace nstd
         // Accessors
         const E &value() const & noexcept;
         E &value() & noexcept;
-        E &&value() && noexcept; // R-value accessor (Steal data)
+        E &&value() && noexcept;
         const E &&value() const && noexcept;
 
     private:
@@ -60,51 +60,37 @@ namespace nstd
         // Destructor
         ~expected();
 
-        // ==========================================
-        //           ASSIGNMENT OPERATORS
-        // ==========================================
-
-        // 1. Copy Assignment (Manual Implementation)
+        // Assignment Operators
         expected &operator=(const expected &other);
-
-        // 2. Move Assignment (Manual Implementation)
         expected &operator=(expected &&other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>);
-
-        // 3. Mixed Assignments (Manual Implementation)
         expected &operator=(const T &rhs);
         expected &operator=(T &&rhs);
         expected &operator=(const unexpected<E> &rhs);
         expected &operator=(unexpected<E> &&rhs);
 
-        // ==========================================
-        //               OBSERVERS
-        // ==========================================
+        // Observers
         bool has_value() const noexcept;
         explicit constexpr operator bool() const noexcept;
 
-        // --- operator* (Unchecked Access) ---
         T &operator*() & noexcept;
         const T &operator*() const & noexcept;
         T &&operator*() && noexcept;
         const T &&operator*() const && noexcept;
 
-        // --- operator-> (Unchecked Access) ---
         T *operator->() noexcept;
         const T *operator->() const noexcept;
 
-        // --- value() (Checked Access) ---
         T &value() &;
         const T &value() const &;
         T &&value() &&;
         const T &&value() const &&;
 
-        // --- error() (Checked Access) ---
         E &error() &;
         const E &error() const &;
         E &&error() &&;
         const E &&error() const &&;
 
-        // swap
+        // Swap
         void swap(expected &other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>);
 
     private:
@@ -118,7 +104,55 @@ namespace nstd
     };
 
     // ==========================================
-    //              Implementation
+    //      VOID SPECIALIZATION DECLARATION
+    // ==========================================
+
+    template <typename E>
+    class expected<void, E>
+    {
+    public:
+        // Constructors
+        expected() noexcept;
+        expected(const unexpected<E> &err);
+        expected(unexpected<E> &&err) noexcept(std::is_nothrow_move_constructible_v<E>);
+        expected(const expected &other);
+        expected(expected &&other) noexcept(std::is_nothrow_move_constructible_v<E>);
+
+        // Destructor
+        ~expected();
+
+        // Assignment Operators
+        expected &operator=(const expected &other);
+        expected &operator=(expected &&other) noexcept(std::is_nothrow_move_constructible_v<E>);
+        expected &operator=(const unexpected<E> &rhs);
+        expected &operator=(unexpected<E> &&rhs);
+
+        // Observers
+        bool has_value() const noexcept;
+        explicit constexpr operator bool() const noexcept;
+
+        void operator*() const noexcept;
+        void value() const;
+
+        E &error() &;
+        const E &error() const &;
+        E &&error() &&;
+        const E &&error() const &&;
+
+        // Swap
+        void swap(expected &other) noexcept(std::is_nothrow_move_constructible_v<E>);
+
+    private:
+        union
+        {
+            char _dummy; // Placeholder for Success
+            E _error;
+        };
+        bool _hasValue;
+    };
+
+    // ==========================================
+    //              IMPLEMENTATION
     // ==========================================
 
     // --- unexpected implementation ---
@@ -142,9 +176,8 @@ namespace nstd
     template <typename E>
     const E &&unexpected<E>::value() const && noexcept { return std::move(_val); }
 
-    // --- expected implementation ---
+    // --- expected<T, E> implementation ---
 
-    // Constructors
     template <typename T, typename E>
     expected<T, E>::expected()
         requires std::is_default_constructible_v<T>
@@ -186,7 +219,6 @@ namespace nstd
             new (&_error) E{std::move(other._error)};
     }
 
-    // Destructor
     template <typename T, typename E>
     expected<T, E>::~expected()
     {
@@ -196,9 +228,7 @@ namespace nstd
             _error.~E();
     }
 
-    // Assignment Operators
-
-    // 1. Copy Assignment
+    // Assignment Operators (expected<T>)
     template <typename T, typename E>
     expected<T, E> &expected<T, E>::operator=(const expected &other)
     {
@@ -228,7 +258,6 @@ namespace nstd
         return *this;
     }
 
-    // 2. Move Assignment
     template <typename T, typename E>
     expected<T, E> &expected<T, E>::operator=(expected &&other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>)
     {
@@ -258,7 +287,6 @@ namespace nstd
         return *this;
     }
 
-    // 3. Mixed Assignments
     template <typename T, typename E>
     expected<T, E> &expected<T, E>::operator=(const T &rhs)
     {
@@ -323,14 +351,13 @@ namespace nstd
         return *this;
     }
 
-    // Observers
+    // Observers (expected<T>)
     template <typename T, typename E>
     bool expected<T, E>::has_value() const noexcept { return _hasValue; }
 
     template <typename T, typename E>
     constexpr expected<T, E>::operator bool() const noexcept { return _hasValue; }
 
-    // --- operator* Implementation ---
     template <typename T, typename E>
     T &expected<T, E>::operator*() & noexcept
     {
@@ -356,7 +383,6 @@ namespace nstd
         return std::move(_value);
     }
 
-    // --- operator-> Implementation ---
     template <typename T, typename E>
     T *expected<T, E>::operator->() noexcept
     {
@@ -370,7 +396,6 @@ namespace nstd
         return &_value;
     }
 
-    // --- value() Implementation ---
     template <typename T, typename E>
     T &expected<T, E>::value() &
     {
@@ -396,7 +421,6 @@ namespace nstd
         return std::move(_value);
     }
 
-    // --- error() Implementation ---
     template <typename T, typename E>
     E &expected<T, E>::error() &
     {
@@ -422,7 +446,6 @@ namespace nstd
         return std::move(_error);
     }
 
-    // --- Swap ---
     template <typename T, typename E>
     void expected<T, E>::swap(expected &other) noexcept(
         std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>)
@@ -456,7 +479,204 @@ namespace nstd
         }
     }
 
-    // Comparision Operations
+    // --- expected<void, E> Implementation ---
+
+    template <typename E>
+    expected<void, E>::expected() noexcept : _hasValue{true} {}
+
+    template <typename E>
+    expected<void, E>::expected(const unexpected<E> &err)
+        : _error{err.value()}, _hasValue{false} {}
+
+    template <typename E>
+    expected<void, E>::expected(unexpected<E> &&err) noexcept(std::is_nothrow_move_constructible_v<E>)
+        : _error{std::move(err).value()}, _hasValue{false} {}
+
+    template <typename E>
+    expected<void, E>::expected(const expected &other) : _hasValue{other._hasValue}
+    {
+        if (!_hasValue)
+            new (&_error) E(other._error);
+    }
+
+    template <typename E>
+    expected<void, E>::expected(expected &&other) noexcept(std::is_nothrow_move_constructible_v<E>)
+        : _hasValue{other._hasValue}
+    {
+        if (!_hasValue)
+            new (&_error) E{std::move(other._error)};
+    }
+
+    template <typename E>
+    expected<void, E>::~expected()
+    {
+        if (!_hasValue)
+            _error.~E();
+    }
+
+    template <typename E>
+    expected<void, E> &expected<void, E>::operator=(const expected &other)
+    {
+        if (this == &other)
+            return *this;
+
+        if (_hasValue && other._hasValue)
+        {
+            // Both success
+        }
+        else if (!_hasValue && !other._hasValue)
+        {
+            _error = other._error;
+        }
+        else if (_hasValue && !other._hasValue)
+        {
+            _hasValue = false;
+            new (&_error) E(other._error);
+        }
+        else
+        {
+            _error.~E();
+            _hasValue = true;
+        }
+        return *this;
+    }
+
+    template <typename E>
+    expected<void, E> &expected<void, E>::operator=(expected &&other) noexcept(std::is_nothrow_move_constructible_v<E>)
+    {
+        if (this == &other)
+            return *this;
+
+        if (_hasValue && other._hasValue)
+        {
+            // Both success
+        }
+        else if (!_hasValue && !other._hasValue)
+        {
+            _error = std::move(other._error);
+        }
+        else if (_hasValue && !other._hasValue)
+        {
+            _hasValue = false;
+            new (&_error) E(std::move(other._error));
+        }
+        else
+        {
+            _error.~E();
+            _hasValue = true;
+        }
+        return *this;
+    }
+
+    template <typename E>
+    expected<void, E> &expected<void, E>::operator=(const unexpected<E> &rhs)
+    {
+        if (!_hasValue)
+        {
+            _error = rhs.value();
+        }
+        else
+        {
+            _hasValue = false;
+            new (&_error) E(rhs.value());
+        }
+        return *this;
+    }
+
+    template <typename E>
+    expected<void, E> &expected<void, E>::operator=(unexpected<E> &&rhs)
+    {
+        if (!_hasValue)
+        {
+            _error = std::move(rhs).value();
+        }
+        else
+        {
+            _hasValue = false;
+            new (&_error) E(std::move(rhs).value());
+        }
+        return *this;
+    }
+
+    template <typename E>
+    bool expected<void, E>::has_value() const noexcept { return _hasValue; }
+
+    template <typename E>
+    constexpr expected<void, E>::operator bool() const noexcept { return _hasValue; }
+
+    template <typename E>
+    void expected<void, E>::operator*() const noexcept
+    {
+        assert(_hasValue && "Bad expected access");
+    }
+
+    template <typename E>
+    void expected<void, E>::value() const
+    {
+        assert(_hasValue && "Bad expected access");
+    }
+
+    template <typename E>
+    E &expected<void, E>::error() &
+    {
+        assert(!_hasValue);
+        return _error;
+    }
+
+    template <typename E>
+    const E &expected<void, E>::error() const &
+    {
+        assert(!_hasValue);
+        return _error;
+    }
+
+    template <typename E>
+    E &&expected<void, E>::error() &&
+    {
+        assert(!_hasValue);
+        return std::move(_error);
+    }
+
+    template <typename E>
+    const E &&expected<void, E>::error() const &&
+    {
+        assert(!_hasValue);
+        return std::move(_error);
+    }
+
+    template <typename E>
+    void expected<void, E>::swap(expected &other) noexcept(std::is_nothrow_move_constructible_v<E>)
+    {
+        if (this == &other)
+            return;
+
+        if (_hasValue && other._hasValue)
+        {
+            // Both success
+        }
+        else if (!_hasValue && !other._hasValue)
+        {
+            using std::swap;
+            swap(_error, other._error);
+        }
+        else if (_hasValue && !other._hasValue)
+        {
+            new (&_error) E{std::move(other._error)};
+            _hasValue = false;
+            other._error.~E();
+            other._hasValue = true;
+        }
+        else
+        {
+            other.swap(*this);
+        }
+    }
+
+    // ==========================================
+    //            GLOBAL OPERATORS
+    // ==========================================
+
+    // --- expected<T, E> Comparisons ---
     template <typename T, typename E>
     bool operator==(const expected<T, E> &lhs, const expected<T, E> &rhs)
     {
@@ -475,6 +695,23 @@ namespace nstd
 
     template <typename T, typename E>
     bool operator==(const expected<T, E> &lhs, const unexpected<E> &rhs)
+    {
+        return !lhs.has_value() && lhs.error() == rhs.value();
+    }
+
+    // --- expected<void, E> Comparisons ---
+    template <typename E>
+    bool operator==(const expected<void, E> &lhs, const expected<void, E> &rhs)
+    {
+        if (lhs.has_value() != rhs.has_value())
+            return false;
+        if (lhs.has_value())
+            return true;
+        return lhs.error() == rhs.error();
+    }
+
+    template <typename E>
+    bool operator==(const expected<void, E> &lhs, const unexpected<E> &rhs)
     {
         return !lhs.has_value() && lhs.error() == rhs.value();
     }
