@@ -323,6 +323,129 @@ namespace tests
 
             std::cout << "Passed.\n";
         }
+
+        // 12. Void Specialization Basics
+        void test_void_basics()
+        {
+            std::cout << "  Testing expected<void, E> basics... ";
+
+            // 1. Default Construction (Success)
+            nstd::expected<void, std::string> e_success;
+            TEST_ASSERT(e_success.has_value());
+            TEST_ASSERT(e_success); // bool operator
+
+            // calling value() or *e should verify success (and return void)
+            e_success.value();
+            *e_success;
+
+            // 2. Error Construction
+            nstd::expected<void, std::string> e_error = nstd::unexpected<std::string>("Failed");
+            TEST_ASSERT(!e_error.has_value());
+            TEST_ASSERT(e_error.error() == "Failed");
+
+            // 3. Copy Construction
+            nstd::expected<void, std::string> e_copy = e_error;
+            TEST_ASSERT(e_copy.error() == "Failed");
+
+            std::cout << "Passed.\n";
+        }
+
+        // 13. Void Specialization with Move-Only Errors
+        void test_void_move_only()
+        {
+            std::cout << "  Testing expected<void, unique_ptr>... ";
+
+            using Err = std::unique_ptr<int>;
+            using VoidExp = nstd::expected<void, Err>;
+
+            // Create unexpected with unique_ptr
+            VoidExp e1 = nstd::unexpected(std::make_unique<int>(404));
+
+            TEST_ASSERT(!e1.has_value());
+            TEST_ASSERT(*e1.error() == 404);
+
+            // Move Construct
+            VoidExp e2 = std::move(e1);
+            TEST_ASSERT(!e2.has_value());
+            TEST_ASSERT(*e2.error() == 404);
+            // e1.error() is now null/empty
+
+            // Move Assignment
+            VoidExp e3;         // Currently success
+            e3 = std::move(e2); // Now error
+            TEST_ASSERT(!e3.has_value());
+            TEST_ASSERT(*e3.error() == 404);
+
+            std::cout << "Passed.\n";
+        }
+
+        // 14. Comparisons for expected<void>
+        void test_void_comparisons()
+        {
+            std::cout << "  Testing expected<void> comparisons... ";
+
+            nstd::expected<void, int> s1;
+            nstd::expected<void, int> s2;
+            nstd::expected<void, int> e1 = nstd::unexpected(500);
+            nstd::expected<void, int> e2 = nstd::unexpected(500);
+            nstd::expected<void, int> e3 = nstd::unexpected(404);
+
+            // Success == Success (Always true for void)
+            TEST_ASSERT(s1 == s2);
+
+            // Error == Error
+            TEST_ASSERT(e1 == e2);
+            TEST_ASSERT(!(e1 == e3));
+
+            // Success != Error
+            TEST_ASSERT(!(s1 == e1));
+
+            // Comparison against unexpected
+            TEST_ASSERT(e1 == nstd::unexpected(500));
+
+            std::cout << "Passed.\n";
+        }
+
+        // 15. Ref-Qualified Accessors (Resource Stealing)
+        void test_ref_qualifiers()
+        {
+            std::cout << "  Testing ref-qualified accessors (&&)... ";
+
+            // Case A: Stealing Value
+            {
+                nstd::expected<std::string, int> e("LongStringData");
+
+                // std::move(e) casts to r-value -> calls value() &&
+                std::string s = std::move(e).value();
+
+                TEST_ASSERT(s == "LongStringData");
+                // The string inside 'e' should be moved-from (empty)
+                TEST_ASSERT(e.value().empty());
+            }
+
+            // Case B: Stealing Error
+            {
+                nstd::expected<int, std::string> e = nstd::unexpected<std::string>("ErrorData");
+
+                // std::move(e) casts to r-value -> calls error() &&
+                std::string s = std::move(e).error();
+
+                TEST_ASSERT(s == "ErrorData");
+                // The string inside 'e' should be moved-from (empty)
+                TEST_ASSERT(e.error().empty());
+            }
+
+            // Case C: Stealing from Void Expected (Error only)
+            {
+                nstd::expected<void, std::string> e = nstd::unexpected<std::string>("VoidError");
+                std::string s = std::move(e).error();
+                TEST_ASSERT(s == "VoidError");
+                TEST_ASSERT(e.error().empty());
+            }
+
+            std::cout << "Passed.\n";
+        }
+
     } // namespace nstd::expected_test
 } // namespace tests
 
