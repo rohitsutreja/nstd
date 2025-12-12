@@ -2,6 +2,7 @@
 #include "test_string.hpp"
 #include "test_list.hpp"
 #include "test_stack.hpp"
+#include "test_expected.hpp"
 
 // ------------------------- Main Test Runner -------------------------
 int main()
@@ -51,6 +52,13 @@ int main()
     tests::stack::test_copy_move();
     tests::stack::test_multiple_types();
     tests::stack::test_stress();
+
+    std::cout << "\n=== Expected Tests ===\n";
+    tests::expected_test::test_basic_operations();
+    tests::expected_test::test_state_switching();
+    tests::expected_test::test_copy();
+    tests::expected_test::test_move();
+    tests::expected_test::test_complex_types();
 
     std::cout << "\n=== All nstd tests passed! ===\n";
     std::cout << "Your nstd implementations are robust and ready for use!\n";
