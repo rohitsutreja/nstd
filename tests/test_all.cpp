@@ -60,6 +60,10 @@ int main()
     tests::expected_test::test_move();
     tests::expected_test::test_complex_types();
     tests::expected_test::test_comparisons();
+    tests::expected_test::test_move_only();
+    tests::expected_test::test_swap();
+    tests::expected_test::test_constraints();
+    tests::expected_test::test_rvalue_access();
 
     std::cout << "\n=== All nstd tests passed! ===\n";
     std::cout << "Your nstd implementations are robust and ready for use!\n";

@@ -209,6 +209,120 @@ namespace tests
 
             std::cout << "Passed.\n";
         }
+
+        // 8. Move-Only Types (std::unique_ptr)
+        void test_move_only()
+        {
+            std::cout << "  Testing move-only types (unique_ptr)... ";
+
+            using Ptr = std::unique_ptr<int>;
+            using Exp = nstd::expected<Ptr, int>;
+
+            // Construction
+            Exp e1(std::make_unique<int>(99));
+            TEST_ASSERT(e1.has_value());
+            TEST_ASSERT(**e1 == 99);
+
+            // Move Construction
+            Exp e2 = std::move(e1);
+            TEST_ASSERT(e2.has_value());
+            TEST_ASSERT(**e2 == 99);
+            // e1 is now valid but empty (moved-from state)
+
+            // Move Assignment
+            Exp e3(std::make_unique<int>(100));
+            e3 = std::move(e2);
+            TEST_ASSERT(**e3 == 99);
+
+            std::cout << "Passed.\n";
+        }
+
+        // 9. Comprehensive Swap Logic
+        void test_swap()
+        {
+            std::cout << "  Testing swap logic (all 4 cases)... ";
+
+            using Exp = nstd::expected<std::string, int>;
+
+            // Case 1: Value <-> Value
+            Exp v1("A");
+            Exp v2("B");
+            v1.swap(v2);
+            TEST_ASSERT(*v1 == "B" && *v2 == "A");
+
+            // Case 2: Error <-> Error
+            Exp e1 = nstd::unexpected<int>(404);
+            Exp e2 = nstd::unexpected<int>(500);
+            e1.swap(e2);
+            TEST_ASSERT(e1.error() == 500 && e2.error() == 404);
+
+            // Case 3: Value <-> Error
+            Exp mixed1("Success");
+            Exp mixed2 = nstd::unexpected<int>(999);
+            mixed1.swap(mixed2);
+
+            // mixed1 should now be error 999
+            TEST_ASSERT(!mixed1.has_value());
+            TEST_ASSERT(mixed1.error() == 999);
+
+            // mixed2 should now be value "Success"
+            TEST_ASSERT(mixed2.has_value());
+            TEST_ASSERT(*mixed2 == "Success");
+
+            // Case 4: Error <-> Value (Symmetry)
+            mixed1.swap(mixed2); // Swap back
+            TEST_ASSERT(mixed1.has_value());
+            TEST_ASSERT(*mixed1 == "Success");
+            TEST_ASSERT(mixed2.error() == 999);
+
+            std::cout << "Passed.\n";
+        }
+
+        // Helper struct with NO default constructor
+        struct NoDefault
+        {
+            int x;
+            NoDefault(int v) : x(v) {} // Only this constructor exists
+        };
+
+        // 10. Constraints & SFINAE
+        void test_constraints()
+        {
+            std::cout << "  Testing constraints... ";
+
+            // This line compiles because int IS default constructible
+            nstd::expected<int, int> e_def;
+            TEST_ASSERT(e_def.has_value());
+            TEST_ASSERT(*e_def == 0);
+
+            // If we uncommented this line, it should FAIL TO COMPILE (Good!):
+            // nstd::expected<NoDefault, int> e_fail;
+
+            // But this should work (Direct Initialization)
+            nstd::expected<NoDefault, int> e_direct(NoDefault(10));
+            TEST_ASSERT(e_direct.has_value());
+            TEST_ASSERT(e_direct->x == 10);
+
+            std::cout << "Passed.\n";
+        }
+
+        // 11. R-Value Accessors (Stealing Data)
+        void test_rvalue_access()
+        {
+            std::cout << "  Testing R-value accessors... ";
+
+            nstd::expected<std::string, int> e("MoveMe");
+
+            // This should MOVE the string out, not copy it
+            std::string s = std::move(e).value();
+
+            TEST_ASSERT(s == "MoveMe");
+
+            // The string inside 'e' is now in a "moved-from" state (empty)
+            TEST_ASSERT(e.value().empty());
+
+            std::cout << "Passed.\n";
+        }
     } // namespace nstd::expected_test
 } // namespace tests
 

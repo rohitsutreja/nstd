@@ -43,8 +43,13 @@ namespace nstd
         // Constructors
         expected()
             requires std::is_default_constructible_v<T>;
+
         expected(const T &val);
+        expected(T &&val) noexcept(std::is_nothrow_move_constructible_v<T>);
+
         expected(const unexpected<E> &err);
+        expected(unexpected<E> &&err) noexcept(std::is_nothrow_move_constructible_v<E>);
+
         expected(const expected &other);
         expected(expected &&other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>);
 
@@ -54,20 +59,33 @@ namespace nstd
         // Assignment Operators
         expected &operator=(const expected &other);
         expected &operator=(expected &&other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>);
+
         expected &operator=(const T &rhs);
+        expected &operator=(T &&rhs);
+
         expected &operator=(const unexpected<E> &rhs);
+        expected &operator=(unexpected<E> &&rhs);
 
         // Observers
         bool has_value() const noexcept;
 
-        T &operator*() noexcept;
-        const T &operator*() const noexcept;
+        T &operator*() & noexcept;
+        const T &operator*() const & noexcept;
+        T &&operator*() && noexcept;
+        const T &&operator*() const && noexcept;
+
         T *operator->() noexcept;
         const T *operator->() const noexcept;
-        E &error();
-        const E &error() const;
-        T &value();
-        const T &value() const;
+
+        T &value() &;
+        const T &value() const &;
+        T &&value() &&;
+        const T &&value() const &&;
+
+        E &error() &;
+        const E &error() const &;
+        E &&error() &&;
+        const E &&error() const &&;
 
         explicit constexpr operator bool() const noexcept;
 
@@ -119,8 +137,20 @@ namespace nstd
     }
 
     template <typename T, typename E>
+    expected<T, E>::expected(T &&val) noexcept(std::is_nothrow_move_constructible_v<T>)
+        : _value{std::move(val)}, _hasValue{true}
+    {
+    }
+
+    template <typename T, typename E>
     expected<T, E>::expected(const unexpected<E> &err)
         : _error{err.value()}, _hasValue{false}
+    {
+    }
+
+    template <typename T, typename E>
+    expected<T, E>::expected(unexpected<E> &&err) noexcept(std::is_nothrow_move_constructible_v<E>)
+        : _error{std::move(err.value())}, _hasValue{false}
     {
     }
 
@@ -252,6 +282,22 @@ namespace nstd
     }
 
     template <typename T, typename E>
+    expected<T, E> &expected<T, E>::operator=(T &&rhs)
+    {
+        if (_hasValue)
+        {
+            _value = std::move(rhs);
+            return *this;
+        }
+
+        _hasValue = true;
+        _error.~E();
+        new (&_value) T(std::move(rhs));
+
+        return *this;
+    }
+
+    template <typename T, typename E>
     expected<T, E> &expected<T, E>::operator=(const unexpected<E> &rhs)
     {
         if (!_hasValue)
@@ -267,6 +313,22 @@ namespace nstd
         return *this;
     }
 
+    template <typename T, typename E>
+    expected<T, E> &expected<T, E>::operator=(unexpected<E> &&rhs)
+    {
+        if (!_hasValue)
+        {
+            _error = std::move(rhs.value());
+            return *this;
+        }
+
+        _hasValue = false;
+        _value.~T();
+        new (&_error) E(std::move(rhs.value()));
+
+        return *this;
+    }
+
     // Observers
     template <typename T, typename E>
     bool expected<T, E>::has_value() const noexcept
@@ -275,17 +337,31 @@ namespace nstd
     }
 
     template <typename T, typename E>
-    T &expected<T, E>::operator*() noexcept
+    T &expected<T, E>::operator*() & noexcept
     {
         assert(_hasValue && "Bad expected access");
         return _value;
     }
 
     template <typename T, typename E>
-    const T &expected<T, E>::operator*() const noexcept
+    const T &expected<T, E>::operator*() const & noexcept
     {
         assert(_hasValue && "Bad expected access");
         return _value;
+    }
+
+    template <typename T, typename E>
+    T &&expected<T, E>::operator*() && noexcept
+    {
+        assert(_hasValue && "Bad expected access");
+        return std::move(_value);
+    }
+
+    template <typename T, typename E>
+    const T &&expected<T, E>::operator*() const && noexcept
+    {
+        assert(_hasValue && "Bad expected access");
+        return std::move(_value);
     }
 
     template <typename T, typename E>
@@ -303,24 +379,59 @@ namespace nstd
     }
 
     template <typename T, typename E>
-    E &expected<T, E>::error()
-    {
-        assert(!_hasValue && "Bad error access");
-        return _error;
-    }
-
-    template <typename T, typename E>
-    const E &expected<T, E>::error() const
-    {
-        assert(!_hasValue && "Bad error access");
-        return _error;
-    }
-
-    template <typename T, typename E>
-    const T &expected<T, E>::value() const
+    T &expected<T, E>::value() &
     {
         assert(_hasValue && "Bad expected access");
         return _value;
+    }
+
+    template <typename T, typename E>
+    const T &expected<T, E>::value() const &
+    {
+        assert(_hasValue && "Bad expected access");
+        return _value;
+    }
+
+    template <typename T, typename E>
+    T &&expected<T, E>::value() &&
+    {
+        assert(_hasValue && "Bad expected access");
+        return std::move(_value); // <--- Moves data out
+    }
+
+    template <typename T, typename E>
+    const T &&expected<T, E>::value() const &&
+    {
+        assert(_hasValue && "Bad expected access");
+        return std::move(_value);
+    }
+
+    template <typename T, typename E>
+    E &expected<T, E>::error() &
+    {
+        assert(!_hasValue && "Bad error access");
+        return _error;
+    }
+
+    template <typename T, typename E>
+    const E &expected<T, E>::error() const &
+    {
+        assert(!_hasValue && "Bad error access");
+        return _error;
+    }
+
+    template <typename T, typename E>
+    E &&expected<T, E>::error() &&
+    {
+        assert(!_hasValue && "Bad error access");
+        return std::move(_error); // <--- Moves data out
+    }
+
+    template <typename T, typename E>
+    const E &&expected<T, E>::error() const &&
+    {
+        assert(!_hasValue && "Bad error access");
+        return std::move(_error);
     }
 
     template <typename T, typename E>
