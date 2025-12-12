@@ -4,7 +4,7 @@
 #include <utility>
 #include <new>
 #include <cassert>
-
+#include <compare>
 namespace nstd
 {
     // ==========================================
@@ -57,12 +57,15 @@ namespace nstd
 
         // Observers
         bool has_value() const noexcept;
+
         T &operator*();
         const T &operator*() const;
         T *operator->();
         const T *operator->() const;
         E &error();
         const E &error() const;
+        T &value();
+        const T &value() const;
 
     private:
         union
@@ -303,6 +306,59 @@ namespace nstd
     {
         assert(!_hasValue && "Bad error access");
         return _error;
+    }
+
+    template <typename T, typename E>
+    const T &expected<T, E>::value() const
+    {
+        assert(_hasValue && "Bad expected access");
+        return _value;
+    }
+
+    template <typename T, typename E>
+    T &expected<T, E>::value()
+    {
+        assert(_hasValue && "Bad expected access");
+        return _value;
+    }
+
+    // Comparision Operations
+    template <typename T, typename E>
+    bool operator==(const expected<T, E> &lhs, const expected<T, E> &rhs)
+    {
+        if (lhs.has_value() != rhs.has_value())
+        {
+            return false;
+        }
+
+        if (lhs.has_value())
+        {
+            return lhs.value() == rhs.value();
+        }
+
+        return lhs.error() == rhs.error();
+    }
+
+    template <typename T, typename E>
+    bool operator==(const expected<T, E> &lhs, const T &rhs)
+    {
+        if (!lhs.has_value())
+        {
+            return false;
+        }
+
+        return lhs.value() == rhs;
+    }
+
+    template <typename T, typename E>
+    bool operator==(const expected<T, E> &lhs, const unexpected<E> &rhs)
+    {
+        if (lhs.has_value())
+        {
+            return false;
+        }
+
+        return lhs.error() == rhs.value();
     }
 }
 

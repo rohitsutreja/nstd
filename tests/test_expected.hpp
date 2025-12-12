@@ -42,7 +42,7 @@ namespace tests
             std::cout << "Passed.\n";
         }
 
-        // 2. State Switching 
+        // 2. State Switching
         void test_state_switching()
         {
             std::cout << "  Testing state switching (Value <-> Error)... ";
@@ -163,6 +163,52 @@ namespace tests
             std::cout << "Passed.\n";
         }
 
+        // 7. Comparison Operators
+        void test_comparisons()
+        {
+            std::cout << "  Testing comparisons... ";
+
+            // Setup common objects
+            nstd::expected<int, std::string> val10(10);
+            nstd::expected<int, std::string> val20(20);
+            nstd::expected<int, std::string> val10_dup(10);
+
+            nstd::expected<int, std::string> errBad = nstd::unexpected<std::string>("Bad");
+            nstd::expected<int, std::string> errWorse = nstd::unexpected<std::string>("Worse");
+            nstd::expected<int, std::string> errBad_dup = nstd::unexpected<std::string>("Bad");
+            // --- 1. Peer Comparison (expected == expected) ---
+            // Value vs Value
+            TEST_ASSERT(val10 == val10_dup); // 10 == 10
+            TEST_ASSERT(!(val10 == val20));  // 10 != 20
+
+            // Error vs Error
+            TEST_ASSERT(errBad == errBad_dup);  // "Bad" == "Bad"
+            TEST_ASSERT(!(errBad == errWorse)); // "Bad" != "Worse"
+
+            // Value vs Error (Mixed)
+            TEST_ASSERT(!(val10 == errBad)); // Value != Error
+            TEST_ASSERT(!(errBad == val10)); // Error != Value
+
+            // --- 2. Value Comparison (expected == T) ---
+            TEST_ASSERT(val10 == 10);     // Match
+            TEST_ASSERT(!(val10 == 99));  // Mismatch
+            TEST_ASSERT(!(errBad == 10)); // Error is never equal to a Value
+
+            // Mirror Check (T == expected)
+            // (If you didn't implement the mirror operator, these lines will fail to compile)
+            TEST_ASSERT(10 == val10);
+            TEST_ASSERT(!(99 == val10));
+
+            // --- 3. Error Comparison (expected == unexpected) ---
+            TEST_ASSERT(errBad == nstd::unexpected<std::string>("Bad"));
+            TEST_ASSERT(!(errBad == nstd::unexpected<std::string>("Worse")));
+            TEST_ASSERT(!(val10 == nstd::unexpected<std::string>("Bad"))); // Value is never equal to an Error
+
+            // Mirror Check (unexpected == expected)
+            TEST_ASSERT(nstd::unexpected<std::string>("Bad") == errBad);
+
+            std::cout << "Passed.\n";
+        }
     } // namespace nstd::expected_test
 } // namespace tests
 
