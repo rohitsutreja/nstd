@@ -340,32 +340,50 @@ namespace nstd
         }
         else if (_has_value && !other._has_value)
         {
-            auto temp{std::move(_value)};
-            std::destroy_at(&_value);
-            try
+            if constexpr (std::is_nothrow_move_constructible_v<E>)
             {
+                std::destroy_at(&_value);
                 std::construct_at(&_error, std::move(other._error));
                 _has_value = false;
             }
-            catch (...)
+            else
             {
-                std::construct_at(&_value, std::move(temp));
-                throw;
+                auto temp{std::move(_value)};
+                std::destroy_at(&_value);
+                try
+                {
+                    std::construct_at(&_error, std::move(other._error));
+                    _has_value = false;
+                }
+                catch (...)
+                {
+                    std::construct_at(&_value, std::move(temp));
+                    throw;
+                }
             }
         }
         else
         {
-            auto temp{std::move(_error)};
-            std::destroy_at(&_error);
-            try
+            if constexpr (std::is_nothrow_move_constructible_v<T>)
             {
+                std::destroy_at(&_error);
                 std::construct_at(&_value, std::move(other._value));
                 _has_value = true;
             }
-            catch (...)
+            else
             {
-                std::construct_at(&_error, std::move(temp));
-                throw;
+                auto temp{std::move(_error)};
+                std::destroy_at(&_error);
+                try
+                {
+                    std::construct_at(&_value, std::move(other._value));
+                    _has_value = true;
+                }
+                catch (...)
+                {
+                    std::construct_at(&_error, std::move(temp));
+                    throw;
+                }
             }
         }
         return *this;
@@ -405,17 +423,26 @@ namespace nstd
         }
         else
         {
-            auto temp{std::move(_error)};
-            std::destroy_at(&_error);
-            try
+            if constexpr (std::is_nothrow_move_constructible_v<T>)
             {
+                std::destroy_at(&_error);
                 std::construct_at(&_value, std::move(rhs));
                 _has_value = true;
             }
-            catch (...)
+            else
             {
-                std::construct_at(&_error, std::move(temp));
-                throw;
+                auto temp{std::move(_error)};
+                std::destroy_at(&_error);
+                try
+                {
+                    std::construct_at(&_value, std::move(rhs));
+                    _has_value = true;
+                }
+                catch (...)
+                {
+                    std::construct_at(&_error, std::move(temp));
+                    throw;
+                }
             }
         }
         return *this;
@@ -455,17 +482,26 @@ namespace nstd
         }
         else
         {
-            auto temp{std::move(_value)};
-            std::destroy_at(&_value);
-            try
+            if constexpr (std::is_nothrow_move_constructible_v<E>)
             {
+                std::destroy_at(&_value);
                 std::construct_at(&_error, std::move(rhs).value());
                 _has_value = false;
             }
-            catch (...)
+            else
             {
-                std::construct_at(&_value, std::move(temp));
-                throw;
+                auto temp{std::move(_value)};
+                std::destroy_at(&_value);
+                try
+                {
+                    std::construct_at(&_error, std::move(rhs).value());
+                    _has_value = false;
+                }
+                catch (...)
+                {
+                    std::construct_at(&_value, std::move(temp));
+                    throw;
+                }
             }
         }
         return *this;
