@@ -32,8 +32,6 @@ namespace nstd
     class bad_expected_access : public std::exception
     {
     public:
-        explicit bad_expected_access(E err) : _error{std::move(err)} {}
-
         explicit bad_expected_access(const E &err) : _error(err) {}
         explicit bad_expected_access(E &&err) : _error(std::move(err)) {}
 
@@ -448,7 +446,7 @@ namespace nstd
     template <typename T, typename E>
     constexpr T &expected<T, E>::value() &
     {
-        if (!_hasValue)
+        if (!_has_value)
         {
             throw bad_expected_access<E>(_error);
         }
@@ -457,7 +455,7 @@ namespace nstd
     template <typename T, typename E>
     constexpr const T &expected<T, E>::value() const &
     {
-        if (!_hasValue)
+        if (!_has_value)
         {
             throw bad_expected_access<E>(_error);
         }
@@ -466,7 +464,7 @@ namespace nstd
     template <typename T, typename E>
     constexpr T &&expected<T, E>::value() &&
     {
-        if (!_hasValue)
+        if (!_has_value)
         {
             throw bad_expected_access<E>(_error);
         }
@@ -475,7 +473,7 @@ namespace nstd
     template <typename T, typename E>
     constexpr const T &&expected<T, E>::value() const &&
     {
-        if (!_hasValue)
+        if (!_has_value)
         {
             throw bad_expected_access<E>(_error);
         }
