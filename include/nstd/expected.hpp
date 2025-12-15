@@ -2,7 +2,6 @@
 #define NSTD_EXPECTED_HPP
 
 #include <utility>
-#include <new>
 #include <cassert>
 #include <compare>
 #include <type_traits>
@@ -213,9 +212,13 @@ namespace nstd
     constexpr expected<T, E>::expected(const expected &other) : _hasValue{other._hasValue}
     {
         if (_hasValue)
-            new (&_value) T(other._value);
+        {
+            std::construct_at(&_value, other._value);
+        }
         else
-            new (&_error) E(other._error);
+        {
+            std::construct_at(&_error, other._error);
+        }
     }
 
     template <typename T, typename E>
@@ -223,18 +226,26 @@ namespace nstd
         : _hasValue{other._hasValue}
     {
         if (_hasValue)
-            new (&_value) T{std::move(other._value)};
+        {
+            std::construct_at(&_value, std::move(other._value));
+        }
         else
-            new (&_error) E{std::move(other._error)};
+        {
+            std::construct_at(&_error, std::move(other._error));
+        }
     }
 
     template <typename T, typename E>
     constexpr expected<T, E>::~expected()
     {
         if (_hasValue)
-            _value.~T();
+        {
+            std::destroy_at(&_value);
+        }
         else
-            _error.~E();
+        {
+            std::destroy_at(&_error);
+        }
     }
 
     // Assignment Operators (expected<T>)
@@ -254,15 +265,15 @@ namespace nstd
         }
         else if (_hasValue && !other._hasValue)
         {
-            _value.~T();
+            std::destroy_at(&_value);
             _hasValue = false;
-            new (&_error) E(other._error);
+            std::construct_at(&_error, other._error);
         }
         else
         {
-            _error.~E();
+            std::destroy_at(&_error);
             _hasValue = true;
-            new (&_value) T(other._value);
+            std::construct_at(&_value, other._value);
         }
         return *this;
     }
@@ -283,15 +294,15 @@ namespace nstd
         }
         else if (_hasValue && !other._hasValue)
         {
-            _value.~T();
+            std::destroy_at(&_value);
             _hasValue = false;
-            new (&_error) E{std::move(other._error)};
+            std::construct_at(&_error, std::move(other._error));
         }
         else
         {
-            _error.~E();
+            std::destroy_at(&_error);
             _hasValue = true;
-            new (&_value) T{std::move(other._value)};
+            std::construct_at(&_value, std::move(other._value));
         }
         return *this;
     }
@@ -305,9 +316,9 @@ namespace nstd
         }
         else
         {
-            _error.~E();
+            std::destroy_at(&_error);
             _hasValue = true;
-            new (&_value) T(rhs);
+            std::construct_at(&_value, rhs);
         }
         return *this;
     }
@@ -321,9 +332,9 @@ namespace nstd
         }
         else
         {
-            _error.~E();
+            std::destroy_at(&_error);
             _hasValue = true;
-            new (&_value) T(std::move(rhs));
+            std::construct_at(&_value, std::move(rhs));
         }
         return *this;
     }
@@ -337,9 +348,9 @@ namespace nstd
         }
         else
         {
-            _value.~T();
+            std::destroy_at(&_value);
             _hasValue = false;
-            new (&_error) E(rhs.value());
+            std::construct_at(&_error, rhs.value());
         }
         return *this;
     }
@@ -353,9 +364,9 @@ namespace nstd
         }
         else
         {
-            _value.~T();
+            std::destroy_at(&_value);
             _hasValue = false;
-            new (&_error) E(std::move(rhs).value());
+            std::construct_at(&_error, std::move(rhs).value());
         }
         return *this;
     }
@@ -475,11 +486,11 @@ namespace nstd
         else if (_hasValue && !other._hasValue)
         {
             auto temp{std::move(_value)};
-            _value.~T();
-            new (&_error) E{std::move(other._error)};
+            std::destroy_at(&_value);
+            std::construct_at(&_error, std::move(other._error));
             _hasValue = false;
-            other._error.~E();
-            new (&other._value) T{std::move(temp)};
+            std::destroy_at(&other._error);
+            std::construct_at(&other._value, std::move(temp));
             other._hasValue = true;
         }
         else
@@ -505,7 +516,9 @@ namespace nstd
     constexpr expected<void, E>::expected(const expected &other) : _hasValue{other._hasValue}
     {
         if (!_hasValue)
-            new (&_error) E(other._error);
+        {
+            std::construct_at(&_error, other._error);
+        }
     }
 
     template <typename E>
@@ -513,14 +526,18 @@ namespace nstd
         : _hasValue{other._hasValue}
     {
         if (!_hasValue)
-            new (&_error) E{std::move(other._error)};
+        {
+            std::construct_at(&_error, std::move(other._error));
+        }
     }
 
     template <typename E>
     constexpr expected<void, E>::~expected()
     {
         if (!_hasValue)
-            _error.~E();
+        {
+            std::destroy_at(&_error);
+        }
     }
 
     template <typename E>
@@ -540,11 +557,11 @@ namespace nstd
         else if (_hasValue && !other._hasValue)
         {
             _hasValue = false;
-            new (&_error) E(other._error);
+            std::construct_at(&_error, other._error);
         }
         else
         {
-            _error.~E();
+            std::destroy_at(&_error);
             _hasValue = true;
         }
         return *this;
@@ -567,11 +584,11 @@ namespace nstd
         else if (_hasValue && !other._hasValue)
         {
             _hasValue = false;
-            new (&_error) E(std::move(other._error));
+            std::construct_at(&_error, std::move(other._error));
         }
         else
         {
-            _error.~E();
+            std::destroy_at(&_error);
             _hasValue = true;
         }
         return *this;
@@ -587,7 +604,7 @@ namespace nstd
         else
         {
             _hasValue = false;
-            new (&_error) E(rhs.value());
+            std::construct_at(&_error, rhs.value());
         }
         return *this;
     }
@@ -602,7 +619,7 @@ namespace nstd
         else
         {
             _hasValue = false;
-            new (&_error) E(std::move(rhs).value());
+            std::construct_at(&_error, std::move(rhs).value());
         }
         return *this;
     }
@@ -670,9 +687,9 @@ namespace nstd
         }
         else if (_hasValue && !other._hasValue)
         {
-            new (&_error) E{std::move(other._error)};
+            std::construct_at(&_error, std::move(other._error));
             _hasValue = false;
-            other._error.~E();
+            std::destroy_at(&other._error);
             other._hasValue = true;
         }
         else
