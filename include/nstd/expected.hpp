@@ -35,7 +35,7 @@ namespace nstd
         explicit bad_expected_access(const E &err) : _error(err) {}
         explicit bad_expected_access(E &&err) : _error(std::move(err)) {}
 
-        const char *what() const override
+        const char *what() const noexcept override
         {
             return "nstd::bad_expected_access";
         }
@@ -180,7 +180,6 @@ namespace nstd
     private:
         union
         {
-            char _dummy; // Placeholder for Success
             E _error;
         };
         bool _has_value;
@@ -280,7 +279,9 @@ namespace nstd
     constexpr expected<T, E> &expected<T, E>::operator=(const expected &other)
     {
         if (this == &other)
+        {
             return *this;
+        }
 
         if (other._has_value && _has_value)
         {
@@ -292,15 +293,33 @@ namespace nstd
         }
         else if (_has_value && !other._has_value)
         {
+            auto temp{std::move(_value)};
             std::destroy_at(&_value);
-            _has_value = false;
-            std::construct_at(&_error, other._error);
+            try
+            {
+                std::construct_at(&_error, other._error);
+                _has_value = false;
+            }
+            catch (...)
+            {
+                std::construct_at(&_value, std::move(temp));
+                throw;
+            }
         }
         else
         {
+            auto temp{std::move(_error)};
             std::destroy_at(&_error);
-            _has_value = true;
-            std::construct_at(&_value, other._value);
+            try
+            {
+                std::construct_at(&_value, other._value);
+                _has_value = true;
+            }
+            catch (...)
+            {
+                std::construct_at(&_error, std::move(temp));
+                throw;
+            }
         }
         return *this;
     }
@@ -321,15 +340,33 @@ namespace nstd
         }
         else if (_has_value && !other._has_value)
         {
+            auto temp{std::move(_value)};
             std::destroy_at(&_value);
-            _has_value = false;
-            std::construct_at(&_error, std::move(other._error));
+            try
+            {
+                std::construct_at(&_error, std::move(other._error));
+                _has_value = false;
+            }
+            catch (...)
+            {
+                std::construct_at(&_value, std::move(temp));
+                throw;
+            }
         }
         else
         {
+            auto temp{std::move(_error)};
             std::destroy_at(&_error);
-            _has_value = true;
-            std::construct_at(&_value, std::move(other._value));
+            try
+            {
+                std::construct_at(&_value, std::move(other._value));
+                _has_value = true;
+            }
+            catch (...)
+            {
+                std::construct_at(&_error, std::move(temp));
+                throw;
+            }
         }
         return *this;
     }
@@ -343,9 +380,18 @@ namespace nstd
         }
         else
         {
+            auto temp{std::move(_error)};
             std::destroy_at(&_error);
-            _has_value = true;
-            std::construct_at(&_value, rhs);
+            try
+            {
+                std::construct_at(&_value, rhs);
+                _has_value = true;
+            }
+            catch (...)
+            {
+                std::construct_at(&_error, std::move(temp));
+                throw;
+            }
         }
         return *this;
     }
@@ -359,9 +405,18 @@ namespace nstd
         }
         else
         {
+            auto temp{std::move(_error)};
             std::destroy_at(&_error);
-            _has_value = true;
-            std::construct_at(&_value, std::move(rhs));
+            try
+            {
+                std::construct_at(&_value, std::move(rhs));
+                _has_value = true;
+            }
+            catch (...)
+            {
+                std::construct_at(&_error, std::move(temp));
+                throw;
+            }
         }
         return *this;
     }
@@ -375,9 +430,18 @@ namespace nstd
         }
         else
         {
+            auto temp{std::move(_value)};
             std::destroy_at(&_value);
-            _has_value = false;
-            std::construct_at(&_error, rhs.value());
+            try
+            {
+                std::construct_at(&_error, rhs.value());
+                _has_value = false;
+            }
+            catch (...)
+            {
+                std::construct_at(&_value, std::move(temp));
+                throw;
+            }
         }
         return *this;
     }
@@ -391,9 +455,18 @@ namespace nstd
         }
         else
         {
+            auto temp{std::move(_value)};
             std::destroy_at(&_value);
-            _has_value = false;
-            std::construct_at(&_error, std::move(rhs).value());
+            try
+            {
+                std::construct_at(&_error, std::move(rhs).value());
+                _has_value = false;
+            }
+            catch (...)
+            {
+                std::construct_at(&_value, std::move(temp));
+                throw;
+            }
         }
         return *this;
     }
@@ -583,7 +656,9 @@ namespace nstd
     constexpr expected<void, E> &expected<void, E>::operator=(const expected &other)
     {
         if (this == &other)
+        {
             return *this;
+        }
 
         if (_has_value && other._has_value)
         {
@@ -596,7 +671,15 @@ namespace nstd
         else if (_has_value && !other._has_value)
         {
             _has_value = false;
-            std::construct_at(&_error, other._error);
+            try
+            {
+                std::construct_at(&_error, other._error);
+            }
+            catch (...)
+            {
+                _has_value = true;
+                throw;
+            }
         }
         else
         {
@@ -610,7 +693,9 @@ namespace nstd
     constexpr expected<void, E> &expected<void, E>::operator=(expected &&other) noexcept(std::is_nothrow_move_constructible_v<E>)
     {
         if (this == &other)
+        {
             return *this;
+        }
 
         if (_has_value && other._has_value)
         {
@@ -623,7 +708,15 @@ namespace nstd
         else if (_has_value && !other._has_value)
         {
             _has_value = false;
-            std::construct_at(&_error, std::move(other._error));
+            try
+            {
+                std::construct_at(&_error, std::move(other._error));
+            }
+            catch (...)
+            {
+                _has_value = true;
+                throw;
+            }
         }
         else
         {
@@ -643,7 +736,15 @@ namespace nstd
         else
         {
             _has_value = false;
-            std::construct_at(&_error, rhs.value());
+            try
+            {
+                std::construct_at(&_error, rhs.value());
+            }
+            catch (...)
+            {
+                _has_value = true;
+                throw;
+            }
         }
         return *this;
     }
@@ -658,7 +759,15 @@ namespace nstd
         else
         {
             _has_value = false;
-            std::construct_at(&_error, std::move(rhs).value());
+            try
+            {
+                std::construct_at(&_error, std::move(rhs).value());
+            }
+            catch (...)
+            {
+                _has_value = true;
+                throw;
+            }
         }
         return *this;
     }
@@ -678,7 +787,10 @@ namespace nstd
     template <typename E>
     constexpr void expected<void, E>::value() const
     {
-        assert(_has_value && "Bad expected access");
+        if (!_has_value)
+        {
+            throw bad_expected_access<E>(_error);
+        }
     }
 
     template <typename E>
@@ -746,9 +858,13 @@ namespace nstd
     constexpr bool operator==(const expected<T, E> &lhs, const expected<T, E> &rhs)
     {
         if (lhs.has_value() != rhs.has_value())
+        {
             return false;
+        }
         if (lhs.has_value())
+        {
             return lhs.value() == rhs.value();
+        }
         return lhs.error() == rhs.error();
     }
 
@@ -769,9 +885,13 @@ namespace nstd
     constexpr bool operator==(const expected<void, E> &lhs, const expected<void, E> &rhs)
     {
         if (lhs.has_value() != rhs.has_value())
+        {
             return false;
+        }
         if (lhs.has_value())
+        {
             return true;
+        }
         return lhs.error() == rhs.error();
     }
 
