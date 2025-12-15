@@ -120,6 +120,11 @@ namespace nstd
         constexpr T &&value() &&;
         constexpr const T &&value() const &&;
 
+        constexpr T value_or(const T &default_value) &;
+        constexpr T value_or(T &&default_value) &;
+        constexpr T value_or(const T &default_value) &&;
+        constexpr T value_or(T &&default_value) &&;
+
         constexpr E &error() &;
         constexpr const E &error() const &;
         constexpr E &&error() &&;
@@ -579,6 +584,7 @@ namespace nstd
         }
         return std::move(_value);
     }
+
     template <typename T, typename E>
     constexpr const T &&expected<T, E>::value() const &&
     {
@@ -588,6 +594,58 @@ namespace nstd
         }
         return std::move(_value);
     }
+
+    template <typename T, typename E>
+    constexpr T expected<T, E>::value_or(const T &default_value) &
+    {
+        if (_has_value)
+        {
+            return _value;
+        }
+        else
+        {
+            return default_value;
+        }
+    };
+
+    template <typename T, typename E>
+    constexpr T expected<T, E>::value_or(T &&default_value) &
+    {
+        if (_has_value)
+        {
+            return _value;
+        }
+        else
+        {
+            return std::move(default_value);
+        }
+    };
+
+    template <typename T, typename E>
+    constexpr T expected<T, E>::value_or(const T &default_value) &&
+    {
+        if (_has_value)
+        {
+            return std::move(_value);
+        }
+        else
+        {
+            return default_value;
+        }
+    };
+
+    template <typename T, typename E>
+    constexpr T expected<T, E>::value_or(T &&default_value) &&
+    {
+        if (_has_value)
+        {
+            return std::move(_value);
+        }
+        else
+        {
+            return std::move(default_value);
+        }
+    };
 
     template <typename T, typename E>
     constexpr E &expected<T, E>::error() &
@@ -743,15 +801,23 @@ namespace nstd
         }
         else if (_has_value && !other._has_value)
         {
-            _has_value = false;
-            try
+            if constexpr (std::is_nothrow_move_constructible_v<E>)
             {
+                _has_value = false;
                 std::construct_at(&_error, std::move(other._error));
             }
-            catch (...)
+            else
             {
-                _has_value = true;
-                throw;
+                _has_value = false;
+                try
+                {
+                    std::construct_at(&_error, std::move(other._error));
+                }
+                catch (...)
+                {
+                    _has_value = true;
+                    throw;
+                }
             }
         }
         else
@@ -794,15 +860,23 @@ namespace nstd
         }
         else
         {
-            _has_value = false;
-            try
+            if constexpr (std::is_nothrow_move_constructible_v<E>)
             {
+                _has_value = false;
                 std::construct_at(&_error, std::move(rhs).value());
             }
-            catch (...)
+            else
             {
-                _has_value = true;
-                throw;
+                _has_value = false;
+                try
+                {
+                    std::construct_at(&_error, std::move(rhs).value());
+                }
+                catch (...)
+                {
+                    _has_value = true;
+                    throw;
+                }
             }
         }
         return *this;
@@ -899,7 +973,7 @@ namespace nstd
         }
         if (lhs.has_value())
         {
-            return lhs.value() == rhs.value();
+            return *lhs == *rhs;
         }
         return lhs.error() == rhs.error();
     }
@@ -907,7 +981,7 @@ namespace nstd
     template <typename T, typename E>
     constexpr bool operator==(const expected<T, E> &lhs, const T &rhs)
     {
-        return lhs.has_value() && lhs.value() == rhs;
+        return lhs.has_value() && *lhs == rhs;
     }
 
     template <typename T, typename E>
