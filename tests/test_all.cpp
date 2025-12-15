@@ -54,20 +54,7 @@ int main()
     tests::stack::test_stress();
 
     std::cout << "\n=== Expected Tests ===\n";
-    tests::expected_test::test_basic_operations();
-    tests::expected_test::test_state_switching();
-    tests::expected_test::test_copy();
-    tests::expected_test::test_move();
-    tests::expected_test::test_complex_types();
-    tests::expected_test::test_comparisons();
-    tests::expected_test::test_move_only();
-    tests::expected_test::test_swap();
-    tests::expected_test::test_constraints();
-    tests::expected_test::test_rvalue_access();
-    tests::expected_test::test_void_basics();
-    tests::expected_test::test_void_move_only();
-    tests::expected_test::test_void_comparisons();
-    tests::expected_test::test_ref_qualifiers();
+    tests::expected::run_all_tests();
 
     std::cout << "\n=== All nstd tests passed! ===\n";
     std::cout << "Your nstd implementations are robust and ready for use!\n";
