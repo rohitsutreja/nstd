@@ -57,6 +57,16 @@ namespace nstd
         expected(const expected &other);
         expected(expected &&other) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_constructible_v<E>);
 
+        template <typename U = T>
+            requires(!std::is_same_v<expected, std::remove_cvref_t<U>>) &&
+                        (!std::is_same_v<unexpected<E>, std::remove_cvref_t<U>>) &&
+                        (std::is_constructible_v<T, U>)
+
+        explicit(!std::is_convertible_v<U, T>)
+            expected(U &&val) : _value{std::forward<U>(val)}, _hasValue{true}
+        {
+        }
+
         // Destructor
         ~expected();
 
