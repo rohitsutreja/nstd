@@ -1042,27 +1042,61 @@ namespace tests
             std::cout << "Passed.\n";
         }
 
+        void test_emplace()
+        {
+            std::cout << "  Testing emplace()... ";
+
+            // Test 1: Emplace into error state
+            nstd::expected<nstd::string, int> e1 = nstd::unexpected(42);
+            TEST_ASSERT(!e1.has_value());
+
+            auto &ref = e1.emplace("hello"); // Construct string("hello")
+            TEST_ASSERT(e1.has_value());
+            TEST_ASSERT(*e1 == "hello");
+            TEST_ASSERT(&ref == &(*e1)); // Returns reference to internal value
+
+            // Test 2: Emplace into value state (replace)
+            nstd::expected<nstd::string, int> e2("old value");
+            e2.emplace("new value");
+            TEST_ASSERT(*e2 == "new value");
+
+            // Test 3: Emplace with multiple arguments
+            struct MultiArg
+            {
+                int x;
+                std::string s;
+                MultiArg(int a, const char *b) : x(a), s(b) {}
+            };
+
+            nstd::expected<MultiArg, int> e3 = nstd::unexpected(0);
+            e3.emplace(42, "test");
+            TEST_ASSERT(e3->x == 42);
+            TEST_ASSERT(e3->s == "test");
+
+            std::cout << "Passed.\n";
+        }
+
         // ============================================================================
         // MASTER TEST RUNNER
         // ============================================================================
 
         void run_all_tests()
         {
-            test_basic_operations(); // 1
-            test_state_switching();  // 2
-            test_copy();             // 3
-            test_move();             // 4
-            test_complex_types();    // 5
-            test_edge_cases();       // 6
-            test_comparisons();      // 7
-            test_move_only();        // 8
-            test_swap();             // 9
-            test_constraints();      // 10
-            test_rvalue_access();    // 11
-            test_void_basics();      // 12
-            test_void_move_only();   // 13
-            test_void_comparisons(); // 14
-            test_ref_qualifiers();   // 15
+            test_basic_operations();                 // 1
+            test_state_switching();                  // 2
+            test_copy();                             // 3
+            test_move();                             // 4
+            test_complex_types();                    // 5
+            test_edge_cases();                       // 6
+            test_comparisons();                      // 7
+            test_move_only();                        // 8
+            test_swap();                             // 9
+            test_constraints();                      // 10
+            test_rvalue_access();                    // 11
+            test_void_basics();                      // 12
+            test_void_move_only();                   // 13
+            test_void_comparisons();                 // 14
+            test_ref_qualifiers();                   // 15
             test_value_throws();                     // 16
             test_value_or_overloads();               // 17
             test_value_or_conversions();             // 18
@@ -1088,6 +1122,7 @@ namespace tests
             test_noexcept_specifications();          // 38
             test_adl_namespace();                    // 39
             test_memory_layout();                    // 40
+            test_emplace();
         }
 
     } // namespace expected_test

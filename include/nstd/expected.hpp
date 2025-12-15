@@ -92,6 +92,26 @@ namespace nstd
         {
         }
 
+        // in place construction
+
+        template <typename... Args>
+            requires std::is_constructible_v<T, Args...>
+        constexpr T &emplace(Args &&...args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
+        {
+            if (_has_value)
+            {
+                std::destroy_at(&_value);
+            }
+            else
+            {
+                std::destroy_at(&_error);
+            }
+
+            std::construct_at(&_value, std::forward<Args>(args)...);
+            _has_value = true;
+            return _value;
+        }
+
         // Destructor
         constexpr ~expected();
 
