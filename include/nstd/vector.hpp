@@ -17,22 +17,27 @@ namespace nstd
 	public:
 		vector();
 		vector(const std::initializer_list<T> list);
+
 		vector(const vector& other);
 		vector(vector&& other) noexcept;
 
-		~vector();
-
 		vector& operator=(vector other);
+
+		~vector();
 
 		T& operator[](const size_t index);
 		const T& operator[](const size_t index) const;
 		T& at(size_t index);
 		const T& at(size_t index) const;
+
 		size_t size() const;
 		bool is_empty() const;
 		size_t get_capacity() const;
+
 		void reserve(size_t new_capacity);
 		void shrink_to_fit();
+
+		void _reallocate(size_t size);
 
 		void push_back(const T& element);
 		void push_back(T&& element);
@@ -46,13 +51,16 @@ namespace nstd
 		T& back();
 		const T& front() const;
 		const T& back() const;
+
 		void clear();
+
 		T* begin() noexcept;
 		T* end() noexcept;
 		const T* begin() const noexcept;
 		const T* end() const noexcept;
 		const T* cbegin() const noexcept;
 		const T* cend() const noexcept;
+
 		T* data() noexcept;
 		const T* data() const noexcept;
 
@@ -205,7 +213,34 @@ namespace nstd
 			return;
 		}
 
-		auto* new_mem{ static_cast<T*>(::operator new(new_cap * sizeof(T))) };
+		_reallocate(new_cap);
+	}
+
+	template <typename T>
+	void vector<T>::shrink_to_fit()
+	{
+		if (_length == 0)
+		{
+			std::destroy(_data, _data + _length);
+			::operator delete(_data);
+
+			_data = nullptr;
+			_capacity = 0;
+			_length = 0;
+			return;
+		}
+
+		if (_length < _capacity)
+		{
+			_reallocate(_length);
+		}
+	}
+
+
+	template<typename T>
+	inline void vector<T>::_reallocate(size_t size)
+	{
+		auto* new_mem{ static_cast<T*>(::operator new(size * sizeof(T))) };
 		size_t i{};
 
 		try
@@ -226,48 +261,7 @@ namespace nstd
 		::operator delete(_data);
 
 		_data = new_mem;
-		_capacity = new_cap;
-	}
-
-	template <typename T>
-	void vector<T>::shrink_to_fit()
-	{
-		if (_length == 0)
-		{
-			std::destroy(_data, _data + _length);
-			::operator delete(_data);
-
-			_data = nullptr;
-			_capacity = 0;
-			_length = 0;
-			return;
-		}
-
-		if (_length < _capacity)
-		{
-			auto* new_memory{ static_cast<T*>(::operator new(_length * sizeof(T))) };
-			size_t i{};
-
-			try
-			{
-				for (; i < _length; ++i)
-				{
-					std::construct_at(new_memory + i, std::move_if_noexcept(_data[i]));
-				}
-			}
-			catch (...)
-			{
-				std::destroy(new_memory, new_memory + i);
-				::operator delete(new_memory);
-				throw;
-			}
-
-			std::destroy(_data, _data + _length);
-			::operator delete(_data);
-
-			_data = new_memory;
-			_capacity = _length;
-		}
+		_capacity = size;
 	}
 
 	template <typename T>
