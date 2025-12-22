@@ -8,13 +8,13 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <compare> 
 
 namespace nstd
 {
 	template <typename T>
 	class vector
 	{
-	public:
 	public:
 		using value_type = T;
 		using iterator = T*;
@@ -29,7 +29,7 @@ namespace nstd
 		// --- Constructors & Destructor ---
 		vector();
 		vector(const std::initializer_list<T> list);
-		vector(size_type count, const_reference& value);
+		vector(size_type count, const_reference value); 
 		vector(const vector& other);
 		vector(vector&& other) noexcept;
 
@@ -91,7 +91,6 @@ namespace nstd
 			std::swap(a._capacity, b._capacity);
 			std::swap(a._length, b._length);
 		}
-
 
 		friend bool operator==(const vector& first, const vector& second) {
 			if (&first == &second) {
@@ -259,33 +258,33 @@ namespace nstd
 	// --- Iterators ---
 
 	template <typename T>
-	T* vector<T>::begin() noexcept { return _data; }
+	typename vector<T>::iterator vector<T>::begin() noexcept { return _data; }
 
 	template <typename T>
-	const T* vector<T>::begin() const noexcept { return _data; }
+	typename vector<T>::const_iterator vector<T>::begin() const noexcept { return _data; }
 
 	template <typename T>
-	const T* vector<T>::cbegin() const noexcept { return _data; }
+	typename vector<T>::const_iterator vector<T>::cbegin() const noexcept { return _data; }
 
 	template <typename T>
-	T* vector<T>::end() noexcept { return _data + _length; }
+	typename vector<T>::iterator vector<T>::end() noexcept { return _data + _length; }
 
 	template <typename T>
-	const T* vector<T>::end() const noexcept { return _data + _length; }
+	typename vector<T>::const_iterator vector<T>::end() const noexcept { return _data + _length; }
 
 	template <typename T>
-	const T* vector<T>::cend() const noexcept { return _data + _length; }
+	typename vector<T>::const_iterator vector<T>::cend() const noexcept { return _data + _length; }
 
 	// --- Capacity ---
 
 	template <typename T>
-	vector<T>::size_type vector<T>::size() const
+	typename vector<T>::size_type vector<T>::size() const
 	{
 		return _length;
 	}
 
 	template <typename T>
-	vector<T>::size_type vector<T>::get_capacity() const
+	typename vector<T>::size_type vector<T>::get_capacity() const
 	{
 		return _capacity;
 	}
@@ -353,21 +352,21 @@ namespace nstd
 	// --- Element Access ---
 
 	template <typename T>
-	vector<T>::reference vector<T>::operator[](const size_type index)
+	typename vector<T>::reference vector<T>::operator[](const size_type index)
 	{
 		assert(index < _length);
 		return _data[index];
 	}
 
 	template <typename T>
-	vector<T>::const_reference vector<T>::operator[](const size_type index) const
+	typename vector<T>::const_reference vector<T>::operator[](const size_type index) const
 	{
 		assert(index < _length);
 		return _data[index];
 	}
 
 	template <typename T>
-	vector<T>::reference vector<T>::at(size_type index)
+	typename vector<T>::reference vector<T>::at(size_type index)
 	{
 		if (index >= _length)
 			throw std::out_of_range("vector index out of range");
@@ -375,7 +374,7 @@ namespace nstd
 	}
 
 	template <typename T>
-	vector<T>::const_reference vector<T>::at(size_type index) const
+	typename vector<T>::const_reference vector<T>::at(size_type index) const
 	{
 		if (index >= _length)
 			throw std::out_of_range("vector index out of range");
@@ -383,38 +382,38 @@ namespace nstd
 	}
 
 	template <typename T>
-	vector<T>::reference vector<T>::front()
+	typename vector<T>::reference vector<T>::front()
 	{
 		assert(_length >= 1);
 		return _data[0];
 	}
 
 	template <typename T>
-	vector<T>::const_reference vector<T>::front() const
+	typename vector<T>::const_reference vector<T>::front() const
 	{
 		assert(_length >= 1);
 		return _data[0];
 	}
 
 	template <typename T>
-	vector<T>::reference vector<T>::back()
+	typename vector<T>::reference vector<T>::back()
 	{
 		assert(_length >= 1);
 		return _data[_length - 1];
 	}
 
 	template <typename T>
-	vector<T>::const_reference vector<T>::back() const
+	typename vector<T>::const_reference vector<T>::back() const
 	{
 		assert(_length >= 1);
 		return _data[_length - 1];
 	}
 
 	template <typename T>
-	vector<T>::iterator vector<T>::data() noexcept { return _data; }
+	typename vector<T>::iterator vector<T>::data() noexcept { return _data; }
 
 	template <typename T>
-	vector<T>::const_iterator vector<T>::data() const noexcept { return _data; }
+	typename vector<T>::const_iterator vector<T>::data() const noexcept { return _data; }
 
 	// --- Modifiers ---
 
@@ -469,7 +468,7 @@ namespace nstd
 
 	template<typename T>
 	template<typename ...Args>
-	vector<T>::reference vector<T>::emplace_back(Args&& ...args)
+	typename vector<T>::reference vector<T>::emplace_back(Args&& ...args)
 	{
 		if (_length == _capacity)
 		{
