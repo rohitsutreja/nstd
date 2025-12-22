@@ -29,7 +29,7 @@ namespace nstd
 		// --- Constructors & Destructor ---
 		vector();
 		vector(const std::initializer_list<T> list);
-		vector(size_type count, const_reference value); 
+		vector(size_type count, const_reference value);
 		vector(const vector& other);
 		vector(vector&& other) noexcept;
 
@@ -39,7 +39,12 @@ namespace nstd
 		~vector();
 
 		// --- Assignment ---
-		vector& operator=(vector other);
+
+		// using Copy and Swap idiom
+		// vector& operator=(vector other);
+
+		vector& operator=(const vector& other);
+		vector& operator=(vector&& other);
 
 		// --- Iterators ---
 		iterator begin() noexcept;
@@ -195,14 +200,22 @@ namespace nstd
 			return;
 		}
 
+		_data = static_cast<T*>(operator new(sizeof(T) * other._capacity));
 		_capacity = other._capacity;
-		_data = static_cast<T*>(operator new(sizeof(T) * _capacity));
 
 		try
 		{
-			for (size_type i{}; i < other._length; ++i)
+			// Either we can use direct index or since our class has begin and end we can use range based for loop too.
+
+			//for (size_type i{}; i < other._length; ++i)
+			//{
+			//	std::construct_at(_data + i, other._data[i]);
+			//	++_length;
+			//}
+
+			for (const auto& elem : other)
 			{
-				std::construct_at(_data + i, other._data[i]);
+				std::construct_at(_data + _length, elem);
 				++_length;
 			}
 		}
@@ -248,10 +261,68 @@ namespace nstd
 
 	// --- Assignment ---
 
-	template <typename T>
-	vector<T>& vector<T>::operator=(vector other)
-	{
-		swap(*this, other);
+	// Copy/Move assignment using copy and swap idiom.
+
+	//template <typename T>
+	//vector<T>& vector<T>::operator=(vector other)
+	//{
+	//	swap(*this, other);
+	//	return *this;
+	//}
+
+	template<typename T>
+	vector<T>& vector<T>::operator=(const vector& other) {
+		if (this != &other) {
+			if (other._length == 0) {
+				clear();
+				::operator delete(_data);
+				_data = nullptr;
+				_capacity = 0;
+				return *this;
+			}
+
+			auto new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * other._length)) };
+
+			auto thisIt{ new_mem };
+
+			try {
+				for (auto otherIt{ other.cbegin() }; otherIt != other.cend(); ++otherIt, ++thisIt) {
+					std::construct_at(thisIt, *otherIt);
+				}
+			}
+			catch (...) {
+				std::destroy(new_mem, thisIt);
+				::operator delete(new_mem);
+				throw;
+
+			}
+
+			clear();
+
+			::operator delete(_data);
+			_data = new_mem;
+			_capacity = other._length;
+			_length = other._length;
+		}
+
+		return *this;
+	}
+
+	template<typename T>
+	vector<T>& vector<T>::operator=(vector&& other) {
+		if (&other != this) {
+			clear();
+			::operator delete(_data);
+
+			_data = other._data;
+			_length = other._length;
+			_capacity = other._capacity;
+
+			other._data = nullptr;
+			other._length = 0;
+			other._capacity = 0;
+		}
+
 		return *this;
 	}
 
