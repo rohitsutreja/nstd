@@ -15,10 +15,21 @@ namespace nstd
 	class vector
 	{
 	public:
+	public:
+		using value_type = T;
+		using iterator = T*;
+		using const_iterator = const T*;
+		using reference = T&;
+		using const_reference = const T&;
+		using size_type = size_t;
+		using difference_type = std::ptrdiff_t;
+		using pointer = T*;
+		using const_pointer = const T*;
+
 		// --- Constructors & Destructor ---
 		vector();
 		vector(const std::initializer_list<T> list);
-		vector(size_t count, const T& value);
+		vector(size_type count, const_reference& value);
 		vector(const vector& other);
 		vector(vector&& other) noexcept;
 
@@ -31,44 +42,44 @@ namespace nstd
 		vector& operator=(vector other);
 
 		// --- Iterators ---
-		T* begin() noexcept;
-		const T* begin() const noexcept;
-		const T* cbegin() const noexcept;
+		iterator begin() noexcept;
+		const_iterator begin() const noexcept;
+		const_iterator cbegin() const noexcept;
 
-		T* end() noexcept;
-		const T* end() const noexcept;
-		const T* cend() const noexcept;
+		iterator end() noexcept;
+		const_iterator end() const noexcept;
+		const_iterator cend() const noexcept;
 
 		// --- Capacity ---
-		size_t size() const;
-		size_t get_capacity() const;
+		size_type size() const;
+		size_type get_capacity() const;
 		bool is_empty() const;
-		void reserve(size_t new_capacity);
-		void resize(size_t new_length, const T& value);
+		void reserve(size_type new_capacity);
+		void resize(size_type new_length, const_reference value);
 		void shrink_to_fit();
 
 		// --- Element Access ---
-		T& operator[](const size_t index);
-		const T& operator[](const size_t index) const;
+		reference operator[](const size_type index);
+		const_reference operator[](const size_type index) const;
 
-		T& at(size_t index);
-		const T& at(size_t index) const;
+		reference at(size_type index);
+		const_reference at(size_type index) const;
 
-		T& front();
-		const T& front() const;
+		reference front();
+		const_reference front() const;
 
-		T& back();
-		const T& back() const;
+		reference back();
+		const_reference back() const;
 
-		T* data() noexcept;
-		const T* data() const noexcept;
+		iterator data() noexcept;
+		const_iterator data() const noexcept;
 
 		// --- Modifiers ---
-		void push_back(const T& element);
+		void push_back(const_reference element);
 		void push_back(T&& element);
 
 		template <typename ...Args>
-		T& emplace_back(Args&& ...args);
+		reference emplace_back(Args&& ...args);
 
 		void pop_back();
 		void clear();
@@ -81,13 +92,47 @@ namespace nstd
 			std::swap(a._length, b._length);
 		}
 
+
+		friend bool operator==(const vector& first, const vector& second) {
+			if (&first == &second) {
+				return true;
+			}
+
+			if (first.size() != second.size()) {
+				return false;
+			}
+
+			for (auto ItF{ first.cbegin() }, ItS{ second.cbegin() }; ItF != first.cend(); ++ItF, ++ItS) {
+				if (*ItF != *ItS) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		friend auto operator<=>(const vector& lhs, const vector& rhs)
+		{
+			const auto min_len{ (lhs.size() < rhs.size()) ? lhs.size() : rhs.size() };
+
+			for (size_t i{}; i < min_len; ++i) {
+				auto cmp{ lhs[i] <=> rhs[i] };
+
+				if (cmp != 0) {
+					return cmp;
+				}
+			}
+
+			return lhs.size() <=> rhs.size();
+		}
+
 	private:
 		// --- Helpers ---
-		void _reallocate(size_t size);
+		void _reallocate(size_type size);
 
 		// --- Member Data ---
-		size_t _capacity{};
-		size_t _length{};
+		size_type _capacity{};
+		size_type _length{};
 		T* _data{};
 	};
 
@@ -132,11 +177,11 @@ namespace nstd
 	}
 
 	template<typename T>
-	vector<T>::vector(size_t count, const T& value)
+	vector<T>::vector(size_type count, const_reference value)
 	{
 		reserve(count);
 
-		for (size_t i{}; i < count; ++i) {
+		for (size_type i{}; i < count; ++i) {
 			std::construct_at(_data + i, value);
 			++_length;
 		}
@@ -156,7 +201,7 @@ namespace nstd
 
 		try
 		{
-			for (size_t i{}; i < other._length; ++i)
+			for (size_type i{}; i < other._length; ++i)
 			{
 				std::construct_at(_data + i, other._data[i]);
 				++_length;
@@ -188,7 +233,7 @@ namespace nstd
 		auto size{ std::distance(first, last) };
 		reserve(size);
 
-		size_t start{ 0 };
+		size_type start{ 0 };
 		for (auto i{ first }; first != last; ++first) {
 			std::construct_at(_data + start++, *first);
 			++_length;
@@ -234,13 +279,13 @@ namespace nstd
 	// --- Capacity ---
 
 	template <typename T>
-	size_t vector<T>::size() const
+	vector<T>::size_type vector<T>::size() const
 	{
 		return _length;
 	}
 
 	template <typename T>
-	size_t vector<T>::get_capacity() const
+	vector<T>::size_type vector<T>::get_capacity() const
 	{
 		return _capacity;
 	}
@@ -252,7 +297,7 @@ namespace nstd
 	}
 
 	template <typename T>
-	void vector<T>::reserve(size_t new_cap)
+	void vector<T>::reserve(size_type new_cap)
 	{
 		if (new_cap <= _capacity)
 		{
@@ -263,7 +308,7 @@ namespace nstd
 	}
 
 	template<typename T>
-	void vector<T>::resize(size_t new_length, const T& value)
+	void vector<T>::resize(size_type new_length, const_reference value)
 	{
 		if (new_length == _length) {
 			return;
@@ -279,7 +324,7 @@ namespace nstd
 			reserve(new_length);
 		}
 
-		for (size_t i{ _length }; i < new_length; ++i) {
+		for (size_type i{ _length }; i < new_length; ++i) {
 			std::construct_at(_data + i, value);
 			++_length;
 		}
@@ -308,21 +353,21 @@ namespace nstd
 	// --- Element Access ---
 
 	template <typename T>
-	T& vector<T>::operator[](const size_t index)
+	vector<T>::reference vector<T>::operator[](const size_type index)
 	{
 		assert(index < _length);
 		return _data[index];
 	}
 
 	template <typename T>
-	const T& vector<T>::operator[](const size_t index) const
+	vector<T>::const_reference vector<T>::operator[](const size_type index) const
 	{
 		assert(index < _length);
 		return _data[index];
 	}
 
 	template <typename T>
-	T& vector<T>::at(size_t index)
+	vector<T>::reference vector<T>::at(size_type index)
 	{
 		if (index >= _length)
 			throw std::out_of_range("vector index out of range");
@@ -330,7 +375,7 @@ namespace nstd
 	}
 
 	template <typename T>
-	const T& vector<T>::at(size_t index) const
+	vector<T>::const_reference vector<T>::at(size_type index) const
 	{
 		if (index >= _length)
 			throw std::out_of_range("vector index out of range");
@@ -338,43 +383,43 @@ namespace nstd
 	}
 
 	template <typename T>
-	T& vector<T>::front()
+	vector<T>::reference vector<T>::front()
 	{
 		assert(_length >= 1);
 		return _data[0];
 	}
 
 	template <typename T>
-	const T& vector<T>::front() const
+	vector<T>::const_reference vector<T>::front() const
 	{
 		assert(_length >= 1);
 		return _data[0];
 	}
 
 	template <typename T>
-	T& vector<T>::back()
+	vector<T>::reference vector<T>::back()
 	{
 		assert(_length >= 1);
 		return _data[_length - 1];
 	}
 
 	template <typename T>
-	const T& vector<T>::back() const
+	vector<T>::const_reference vector<T>::back() const
 	{
 		assert(_length >= 1);
 		return _data[_length - 1];
 	}
 
 	template <typename T>
-	T* vector<T>::data() noexcept { return _data; }
+	vector<T>::iterator vector<T>::data() noexcept { return _data; }
 
 	template <typename T>
-	const T* vector<T>::data() const noexcept { return _data; }
+	vector<T>::const_iterator vector<T>::data() const noexcept { return _data; }
 
 	// --- Modifiers ---
 
 	template <typename T>
-	void vector<T>::push_back(const T& element)
+	void vector<T>::push_back(const_reference element)
 	{
 		if (_length == _capacity)
 		{
@@ -424,7 +469,7 @@ namespace nstd
 
 	template<typename T>
 	template<typename ...Args>
-	T& vector<T>::emplace_back(Args&& ...args)
+	vector<T>::reference vector<T>::emplace_back(Args&& ...args)
 	{
 		if (_length == _capacity)
 		{
@@ -452,10 +497,10 @@ namespace nstd
 	// --- Private Helpers ---
 
 	template<typename T>
-	void vector<T>::_reallocate(size_t size)
+	void vector<T>::_reallocate(size_type size)
 	{
 		auto* new_mem{ static_cast<T*>(::operator new(size * sizeof(T))) };
-		size_t i{};
+		size_type i{};
 
 		try
 		{
