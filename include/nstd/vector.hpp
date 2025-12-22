@@ -44,7 +44,7 @@ namespace nstd
 		// vector& operator=(vector other);
 
 		vector& operator=(const vector& other);
-		vector& operator=(vector&& other);
+		vector& operator=(vector&& other) noexcept;
 
 		// --- Iterators ---
 		iterator begin() noexcept;
@@ -56,25 +56,25 @@ namespace nstd
 		const_iterator cend() const noexcept;
 
 		// --- Capacity ---
-		size_type size() const;
-		size_type get_capacity() const;
-		bool is_empty() const;
+		size_type size() const noexcept;
+		size_type get_capacity() const noexcept;
+		bool is_empty() const noexcept;
 		void reserve(size_type new_capacity);
 		void resize(size_type new_length, const_reference value);
 		void shrink_to_fit();
 
 		// --- Element Access ---
-		reference operator[](const size_type index);
-		const_reference operator[](const size_type index) const;
+		reference operator[](const size_type index) noexcept;
+		const_reference operator[](const size_type index) const noexcept;
 
 		reference at(size_type index);
 		const_reference at(size_type index) const;
 
-		reference front();
-		const_reference front() const;
+		reference front() noexcept;
+		const_reference front() const noexcept;
 
-		reference back();
-		const_reference back() const;
+		reference back() noexcept;
+		const_reference back() const noexcept;
 
 		iterator data() noexcept;
 		const_iterator data() const noexcept;
@@ -86,8 +86,8 @@ namespace nstd
 		template <typename ...Args>
 		reference emplace_back(Args&& ...args);
 
-		void pop_back();
-		void clear();
+		void pop_back() noexcept;
+		void clear() noexcept;
 
 		// --- Friends ---
 		friend void swap(vector& a, vector& b) noexcept
@@ -186,8 +186,7 @@ namespace nstd
 		reserve(count);
 
 		for (size_type i{}; i < count; ++i) {
-			std::construct_at(_data + i, value);
-			++_length;
+			std::construct_at(_data + _length++, value);
 		}
 	}
 
@@ -195,12 +194,12 @@ namespace nstd
 	vector<T>::vector(const vector& other)
 		: vector()
 	{
-		if (other._length <= 0)
+		if (other._length == 0)
 		{
 			return;
 		}
 
-		_data = static_cast<T*>(operator new(sizeof(T) * other._capacity));
+		_data = static_cast<T*>(::operator new(sizeof(T) * other._capacity));
 		_capacity = other._capacity;
 
 		try
@@ -243,12 +242,11 @@ namespace nstd
 	inline vector<T>::vector(Iter first, Iter last)
 	{
 		auto size{ std::distance(first, last) };
-		reserve(size);
-
-		size_type start{ 0 };
-		for (auto i{ first }; first != last; ++first) {
-			std::construct_at(_data + start++, *first);
-			++_length;
+		if (size > 0) {
+			reserve(size);
+			for (; first != last; ++first) {
+				std::construct_at(_data + _length++, *first);
+			}
 		}
 	}
 
@@ -281,7 +279,7 @@ namespace nstd
 				return *this;
 			}
 
-			auto new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * other._length)) };
+			auto* new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * other._length)) };
 
 			auto thisIt{ new_mem };
 
@@ -309,8 +307,8 @@ namespace nstd
 	}
 
 	template<typename T>
-	vector<T>& vector<T>::operator=(vector&& other) {
-		if (&other != this) {
+	vector<T>& vector<T>::operator=(vector&& other) noexcept {
+		if (this != &other) {
 			clear();
 			::operator delete(_data);
 
@@ -322,9 +320,9 @@ namespace nstd
 			other._length = 0;
 			other._capacity = 0;
 		}
-
 		return *this;
 	}
+
 
 	// --- Iterators ---
 
@@ -349,19 +347,19 @@ namespace nstd
 	// --- Capacity ---
 
 	template <typename T>
-	typename vector<T>::size_type vector<T>::size() const
+	typename vector<T>::size_type vector<T>::size() const noexcept
 	{
 		return _length;
 	}
 
 	template <typename T>
-	typename vector<T>::size_type vector<T>::get_capacity() const
+	typename vector<T>::size_type vector<T>::get_capacity() const noexcept
 	{
 		return _capacity;
 	}
 
 	template <typename T>
-	bool vector<T>::is_empty() const
+	bool vector<T>::is_empty() const noexcept
 	{
 		return _length == 0;
 	}
@@ -405,12 +403,9 @@ namespace nstd
 	{
 		if (_length == 0)
 		{
-			std::destroy(_data, _data + _length);
 			::operator delete(_data);
-
 			_data = nullptr;
 			_capacity = 0;
-			_length = 0;
 			return;
 		}
 
@@ -423,14 +418,14 @@ namespace nstd
 	// --- Element Access ---
 
 	template <typename T>
-	typename vector<T>::reference vector<T>::operator[](const size_type index)
+	typename vector<T>::reference vector<T>::operator[](const size_type index) noexcept
 	{
 		assert(index < _length);
 		return _data[index];
 	}
 
 	template <typename T>
-	typename vector<T>::const_reference vector<T>::operator[](const size_type index) const
+	typename vector<T>::const_reference vector<T>::operator[](const size_type index) const noexcept
 	{
 		assert(index < _length);
 		return _data[index];
@@ -453,28 +448,28 @@ namespace nstd
 	}
 
 	template <typename T>
-	typename vector<T>::reference vector<T>::front()
+	typename vector<T>::reference vector<T>::front() noexcept
 	{
 		assert(_length >= 1);
 		return _data[0];
 	}
 
 	template <typename T>
-	typename vector<T>::const_reference vector<T>::front() const
+	typename vector<T>::const_reference vector<T>::front() const noexcept
 	{
 		assert(_length >= 1);
 		return _data[0];
 	}
 
 	template <typename T>
-	typename vector<T>::reference vector<T>::back()
+	typename vector<T>::reference vector<T>::back() noexcept
 	{
 		assert(_length >= 1);
 		return _data[_length - 1];
 	}
 
 	template <typename T>
-	typename vector<T>::const_reference vector<T>::back() const
+	typename vector<T>::const_reference vector<T>::back() const noexcept
 	{
 		assert(_length >= 1);
 		return _data[_length - 1];
@@ -550,7 +545,7 @@ namespace nstd
 	}
 
 	template <typename T>
-	void vector<T>::pop_back()
+	void vector<T>::pop_back() noexcept
 	{
 		assert(_length >= 1);
 		std::destroy_at(_data + _length - 1);
@@ -558,7 +553,7 @@ namespace nstd
 	}
 
 	template <typename T>
-	void vector<T>::clear()
+	void vector<T>::clear() noexcept
 	{
 		std::destroy(_data, _data + _length);
 		_length = 0;
