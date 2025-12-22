@@ -19,8 +19,11 @@ namespace nstd
 		vector(const std::initializer_list<T> list);
 		vector(const vector& other);
 		vector(vector&& other) noexcept;
+
 		~vector();
+
 		vector& operator=(vector other);
+
 		T& operator[](const size_t index);
 		const T& operator[](const size_t index) const;
 		T& at(size_t index);
@@ -30,9 +33,15 @@ namespace nstd
 		size_t get_capacity() const;
 		void reserve(size_t new_capacity);
 		void shrink_to_fit();
+
 		void push_back(const T& element);
 		void push_back(T&& element);
+
+		template <typename ...Args>
+		T& emplace_back(Args&& ...args);
+
 		void pop_back();
+
 		T& front();
 		T& back();
 		const T& front() const;
@@ -237,7 +246,6 @@ namespace nstd
 		if (_length < _capacity)
 		{
 			auto* new_memory{ static_cast<T*>(::operator new(_length * sizeof(T))) };
-
 			size_t i{};
 
 			try
@@ -279,11 +287,31 @@ namespace nstd
 	{
 		if (_length == _capacity)
 		{
-			reserve(_capacity ? _capacity * 2 : 1);
+			if (&element >= _data && &element < _data + _length) {
+				auto index{ &element - _data };
+				reserve(_capacity ? _capacity * 2 : 1);
+				std::construct_at(_data + _length, _data[index]);
+			}
+			else {
+				reserve(_capacity ? _capacity * 2 : 1);
+				std::construct_at(_data + _length, std::move(element));
+			}
+		}
+		else {
+			std::construct_at(_data + _length, std::move(element));
 		}
 
-		std::construct_at(_data + _length, std::move(element));
 		++_length;
+	}
+
+	template<typename T>
+	template<typename ...Args>
+	T& vector<T>::emplace_back(Args&& ...args) {
+		if (_length == _capacity) {
+			reserve(_capacity ? _capacity * 2 : 1);
+		}
+		std::construct_at(_data + _length, std::forward<Args>(args)...);
+		return _data[_length++];
 	}
 
 	template <typename T>
