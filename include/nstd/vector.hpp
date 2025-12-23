@@ -1,4 +1,4 @@
-#ifndef NSTD_VECTOR_HPP
+﻿#ifndef NSTD_VECTOR_HPP
 #define NSTD_VECTOR_HPP
 
 #include <cassert>
@@ -58,9 +58,11 @@ namespace nstd
 		// --- Capacity ---
 		size_type size() const noexcept;
 		size_type get_capacity() const noexcept;
+		size_type max_size() const noexcept;
 		bool is_empty() const noexcept;
 		void reserve(size_type new_capacity);
 		void resize(size_type new_length, const_reference value);
+		void resize(size_type new_length);
 		void shrink_to_fit();
 
 		// --- Element Access ---
@@ -82,6 +84,12 @@ namespace nstd
 		// --- Modifiers ---
 		void push_back(const_reference element);
 		void push_back(T&& element);
+
+		iterator insert(const_iterator pos, const_reference value);
+		iterator insert(const_iterator pos, T&& value);
+		iterator insert(const_iterator pos, size_type count, const_reference value);
+
+		iterator erase(const_iterator pos);
 
 		template <typename ...Args>
 		reference emplace_back(Args&& ...args);
@@ -359,6 +367,12 @@ namespace nstd
 	}
 
 	template <typename T>
+	typename vector<T>::size_type vector<T>::max_size() const noexcept
+	{
+		return std::numeric_limits<size_type>::max() / sizeof(T);
+	}
+
+	template <typename T>
 	bool vector<T>::is_empty() const noexcept
 	{
 		return _length == 0;
@@ -394,6 +408,32 @@ namespace nstd
 
 		for (size_type i{ _length }; i < new_length; ++i) {
 			std::construct_at(_data + i, value);
+			++_length;
+		}
+	}
+
+
+	template<typename T>
+	void vector<T>::resize(size_type new_length) {
+		if (new_length == _length) {
+			return;
+		}
+
+		if (new_length < _length) {
+			std::destroy(_data + new_length, _data + _length);
+			_length = new_length;
+			return;
+		}
+
+		if (new_length > _capacity) {
+			reserve(new_length);
+		}
+
+		for (size_type i{ _length }; i < new_length; ++i) {
+			// NO ARGUMENTS passed here.
+			// This invokes the Default Constructor directly in-place.
+			// It does NOT invoke the Copy Constructor.
+			std::construct_at(_data + i);
 			++_length;
 		}
 	}
@@ -530,6 +570,158 @@ namespace nstd
 		}
 
 		++_length;
+	}
+
+	template<typename T>
+	typename vector<T>::iterator vector<T>::insert(const_iterator pos, const_reference value) {
+		if (pos < cbegin() || pos > cend()) {
+			throw std::out_of_range("Iterator out of bounds");
+		}
+
+		if (&value >= _data && &value < _data + _length) {
+			value_type temp = value;
+			return insert(pos, std::move(temp));
+		}
+
+		auto index = static_cast<size_type>(pos - cbegin());
+
+
+		if (index == _length) {
+			push_back(value);
+			return begin() + index;
+		}
+
+		if (_length == _capacity) {
+			reserve(_capacity ? _capacity * 2 : 1);
+		}
+
+		// Last elem needs special handling because at _data + _length, 
+		// it is raw memory we can not assign there because there is no object to call assignment operator.
+		std::construct_at(_data + _length, std::move(_data[_length - 1]));
+		for (size_type i = _length - 1; i > index; --i) {
+			_data[i] = std::move(_data[i - 1]);
+		}
+
+		_data[index] = value;
+		++_length;
+
+		return begin() + index;
+	}
+
+	template<typename T>
+	typename vector<T>::iterator vector<T>::insert(const_iterator pos, T&& value) {
+		if (pos < cbegin() || pos > cend()) {
+			throw std::out_of_range("Iterator out of bounds");
+		}
+
+		if (&value >= _data && &value < _data + _length) {
+			value_type temp{ std::move(value) };
+			return insert(pos, std::move(temp));
+		}
+
+		auto index{ static_cast<size_type>(pos - cbegin()) };
+
+		if (index == _length) {
+			push_back(std::move(value));
+			return begin() + index;
+		}
+
+		if (_length == _capacity) {
+			reserve(_capacity ? _capacity * 2 : 1);
+		}
+
+		std::construct_at(_data + _length, std::move(_data[_length - 1]));
+		for (size_type i = _length - 1; i > index; --i) {
+			_data[i] = std::move(_data[i - 1]);
+		}
+
+		_data[index] = std::move(value);
+		++_length;
+
+		return begin() + index;
+	}
+
+	template<typename T>
+	typename vector<T>::iterator vector<T>::insert(const_iterator pos, size_type count, const_reference value) {
+		if (pos < cbegin() || pos > cend()) {
+			throw std::out_of_range("Iterator out of bounds");
+		}
+
+		if (&value >= _data && &value < _data + _length) {
+			value_type temp = value;
+			return insert(pos, count, temp);
+		}
+
+		if (count == 0) {
+			return begin() + (pos - cbegin());
+		}
+
+		if (pos == cend()) {
+			for (size_type i{}; i < count; ++i) {
+				push_back(value);
+			}
+			return end() - count;
+		}
+
+		// We want to store index in case reallocation happen in reserve.
+		auto insert_index{ pos - cbegin() };
+
+		if (_length + count > _capacity) {
+			reserve(std::max(_length + count, _capacity * 2));
+		}
+
+		auto insert_pos{ _data + insert_index };
+
+		auto old_end{ _data + _length - 1 };
+		auto new_end{ _data + _length + count - 1 };
+
+		auto des{ new_end };
+		auto src{ old_end };
+
+
+		while (src >= insert_pos) {
+			if (des > old_end) {
+				std::construct_at(des, std::move(*src));
+			}
+			else {
+				*des = std::move(*src);
+			}
+			--des;
+			--src;
+		}
+
+		while (des >= insert_pos) {
+			if (des > old_end) {
+				std::construct_at(des, value);
+			}
+			else {
+				*des = value;
+			}
+			--des;
+		}
+
+		_length += count;
+
+		return begin() + insert_index;
+	}
+
+	template<typename T>
+	typename vector<T>::iterator vector<T>::erase(const_iterator pos) {
+		if (pos < cbegin() || pos >= cend()) {
+			throw std::out_of_range{ "Iterator is out of bounds" };
+		}
+
+		auto index{ pos - cbegin() };
+
+		for (difference_type i{ index }; i < static_cast<difference_type>(_length) - 1; ++i) {
+			_data[i] = std::move(_data[i + 1]);
+		}
+
+		_data[_length - 1].~T();
+
+		--_length;
+
+		return begin() + index;
 	}
 
 	template<typename T>

@@ -10,14 +10,7 @@ int main()
     std::cout << "=== Running Comprehensive nstd Tests ===\n\n";
 
     std::cout << "=== Vector Tests ===\n";
-    tests::vector::test_basic_operations();
-    tests::vector::test_copy_move();
-    tests::vector::test_growth();
-    tests::vector::test_iterators();
-    tests::vector::test_reserve_shrink();
-    tests::vector::test_edge_cases();
-    tests::vector::test_multiple_types();
-    tests::vector::test_stress();
+    tests::vector::run_all_tests();
 
     std::cout << "\n=== List Tests ===\n";
     tests::list::test_basic_operations();
