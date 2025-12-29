@@ -641,19 +641,90 @@ namespace nstd
 		return begin() + index;
 	}
 
+
+	// FOR LEARNING PURPOSE- AVOID RAW LOOPS OTHERWISE
+	// 
+	//template<typename T>
+	//typename vector<T>::iterator vector<T>::insert(const_iterator pos, size_type count, const_reference value) {
+	//	if (pos < cbegin() || pos > cend()) {
+	//		throw std::out_of_range("Iterator out of bounds");
+	//	}
+
+	//	if (&value >= _data && &value < _data + _length) {
+	//		value_type temp = value;
+	//		return insert(pos, count, temp);
+	//	}
+
+	//	if (count == 0) {
+	//		return begin() + (pos - cbegin());
+	//	}
+
+	//	if (pos == cend()) {
+	//		for (size_type i{}; i < count; ++i) {
+	//			push_back(value);
+	//		}
+	//		return end() - count;
+	//	}
+
+	//	// We want to store index in case reallocation happen in reserve.
+	//	auto insert_index{ pos - cbegin() };
+
+	//	if (_length + count > _capacity) {
+	//		reserve(std::max(_length + count, _capacity * 2));
+	//	}
+
+	//	auto insert_pos{ _data + insert_index };
+
+	//	auto old_end{ _data + _length - 1 };
+	//	auto new_end{ _data + _length + count - 1 };
+
+	//	auto des{ new_end };
+	//	auto src{ old_end };
+
+
+	//	// Do all the shifting of existing elements.
+	//	while (src >= insert_pos) {
+	//		if (des > old_end) {
+	//			std::construct_at(des, std::move(*src));
+	//		}
+	//		else {
+	//			*des = std::move(*src);
+	//		}
+	//		--des;
+	//		--src;
+	//	}
+
+	//	// Now only value needs to be filled.
+	//	while (des >= insert_pos) {
+	//		if (des > old_end) {
+	//			std::construct_at(des, value);
+	//		}
+	//		else {
+	//			*des = value;
+	//		}
+	//		--des;
+	//	}
+
+	//	_length += count;
+
+	//	return begin() + insert_index;
+	//}
+
+
 	template<typename T>
 	typename vector<T>::iterator vector<T>::insert(const_iterator pos, size_type count, const_reference value) {
 		if (pos < cbegin() || pos > cend()) {
 			throw std::out_of_range("Iterator out of bounds");
 		}
 
-		if (&value >= _data && &value < _data + _length) {
-			value_type temp = value;
-			return insert(pos, count, temp);
-		}
-
 		if (count == 0) {
 			return begin() + (pos - cbegin());
+		}
+
+
+		if (&value >= _data && &value < (_data + _length)) {
+			value_type temp = value;
+			return insert(pos, count, temp);
 		}
 
 		if (pos == cend()) {
@@ -664,40 +735,41 @@ namespace nstd
 		}
 
 		// We want to store index in case reallocation happen in reserve.
-		auto insert_index{ pos - cbegin() };
+		auto insert_index = static_cast<size_type>(pos - cbegin());
 
 		if (_length + count > _capacity) {
 			reserve(std::max(_length + count, _capacity * 2));
 		}
 
 		auto insert_pos{ _data + insert_index };
+		auto old_end{ _data + _length };
 
-		auto old_end{ _data + _length - 1 };
-		auto new_end{ _data + _length + count - 1 };
-
-		auto des{ new_end };
-		auto src{ old_end };
+		auto elemt_to_shift{ _length - insert_index };
 
 
-		while (src >= insert_pos) {
-			if (des > old_end) {
-				std::construct_at(des, std::move(*src));
-			}
-			else {
-				*des = std::move(*src);
-			}
-			--des;
-			--src;
+		// Main challange is to handle initialized and uninitialized memory separetly while shifting.
+
+		//In this case uninitialized space will be filles with shifted elements only.
+		if (elemt_to_shift > count) {
+			// We have count number of unitialized positions, and we have enought elements to shift to fill it, lets fill them first by shifting last count elements.
+			std::uninitialized_move(old_end - count, old_end, old_end);
+
+			// Out of total shifts we already shifted count number of elements, lets shift remaining elements to already initialized positions.
+			std::move_backward(insert_pos, old_end - count, old_end);
+
+			// Fill the holses made by shifting with the given value.
+			std::fill_n(insert_pos, count, value);
 		}
+		// In this case uninitialized space will be filled by shifted elements + value.
+		else {
+			// We have count number of uninitiaized positions, but elements to shift are less than that, so lets fill remaining uninitialized space with value.
+			std::uninitialized_fill_n(old_end, count - elemt_to_shift, value);
 
-		while (des >= insert_pos) {
-			if (des > old_end) {
-				std::construct_at(des, value);
-			}
-			else {
-				*des = value;
-			}
-			--des;
+			// Lets fill the remaining uninitialized space by shifting exisiting elements.
+			std::uninitialized_move(insert_pos, old_end, old_end + count - elemt_to_shift);
+
+			// Lets fill the holes made by shifting with given value, 
+			std::fill_n(insert_pos, elemt_to_shift, value);
 		}
 
 		_length += count;
