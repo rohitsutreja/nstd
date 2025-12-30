@@ -27,7 +27,8 @@ namespace nstd
 		using const_pointer = const T*;
 
 		// --- Constructors & Destructor ---
-		vector();
+		vector() noexcept;
+		explicit vector(size_type count);
 		vector(const std::initializer_list<T> list);
 		vector(size_type count, const_reference value);
 		vector(const vector& other);
@@ -45,6 +46,7 @@ namespace nstd
 
 		vector& operator=(const vector& other);
 		vector& operator=(vector&& other) noexcept;
+		vector& operator=(std::initializer_list<T> ilist);
 
 		// --- Iterators ---
 		iterator begin() noexcept;
@@ -88,6 +90,11 @@ namespace nstd
 		iterator insert(const_iterator pos, const_reference value);
 		iterator insert(const_iterator pos, T&& value);
 		iterator insert(const_iterator pos, size_type count, const_reference value);
+
+		void assign(size_type count, const_reference value);
+		void assign(std::initializer_list<T> ilist);
+		template<typename InputIt>
+		void assign(InputIt first, InputIt last);
 
 		iterator erase(const_iterator pos);
 
@@ -155,9 +162,37 @@ namespace nstd
 	// --- Constructors & Destructor ---
 
 	template <typename T>
-	vector<T>::vector()
+	vector<T>::vector() noexcept
 		: _capacity{ 0 }, _length{ 0 }, _data{ nullptr }
 	{
+	}
+
+	template<typename T>
+	vector<T>::vector(size_type count) : vector() {
+		reserve(count);
+
+
+		try {
+			for (size_type i{}; i < count; ++i) {
+				std::construct_at(_data + i);
+				++_length;
+			}
+		}
+		catch (...) {
+			clear();
+			::operator delete(_data);
+			throw;
+		}
+
+
+
+		// OR 
+
+		// std::uninitialized_default_construct_n(count);
+
+		// OR
+
+		// resize(count);
 	}
 
 	template <typename T>
@@ -222,8 +257,7 @@ namespace nstd
 
 			for (const auto& elem : other)
 			{
-				std::construct_at(_data + _length, elem);
-				++_length;
+				std::construct_at(_data + _length++, elem);
 			}
 		}
 		catch (...)
@@ -331,6 +365,41 @@ namespace nstd
 		return *this;
 	}
 
+	template<typename T>
+	vector<T>& vector<T>::operator=(std::initializer_list<T> ilist)
+	{
+		if (ilist.size() == 0) {
+			clear();
+			::operator delete(_data);
+			_capacity = 0;
+			_data = 0;
+			return *this;
+		}
+
+		auto* new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * ilist.size())) };
+		size_type i{};
+
+		try {
+			for (const auto& item : ilist) {
+				std::construct_at(new_mem + i, item);
+				++i;
+			}
+		}
+		catch (...) {
+			std::destroy(new_mem, new_mem + i);
+			operator delete(new_mem);
+			throw;
+		}
+
+		clear();
+		::operator delete(_data);
+
+		_data = new_mem;
+		_capacity = ilist.size();
+		_length = _capacity;
+
+		return *this;
+	}
 
 	// --- Iterators ---
 
@@ -775,6 +844,45 @@ namespace nstd
 		_length += count;
 
 		return begin() + insert_index;
+	}
+
+	template<typename T>
+	void vector<T>::assign(size_type count, const_reference value)
+	{
+		if (count > _capacity) {
+			if (count == 0) {
+				clear();
+				::operator delete(_data);
+				_capacity = 0;
+				_data = nullptr;
+				return;
+			}
+
+			auto* new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * count)) };
+
+			size_type i{};
+
+			try {
+				for (; i < count; ++i) {
+					std::construct_at(new_mem + i, value);
+				}
+			}
+			catch (...) {
+				std::destroy(new_mem, new_mem + i);
+				::operator delete(new_mem);
+				throw;
+			}
+
+			clear();
+			::operator delete(_data);
+
+			_data = new_mem;
+			_capacity = count;
+			_length = count;
+		}
+		else if (count > _length) {
+
+		}
 	}
 
 	template<typename T>
