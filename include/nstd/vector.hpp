@@ -849,15 +849,22 @@ namespace nstd
 	template<typename T>
 	void vector<T>::assign(size_type count, const_reference value)
 	{
-		if (count > _capacity) {
-			if (count == 0) {
-				clear();
-				::operator delete(_data);
-				_capacity = 0;
-				_data = nullptr;
-				return;
-			}
+		if (count == 0) {
+			clear();
+			::operator delete(_data);
+			_capacity = 0;
+			_data = nullptr;
+			return;
+		}
 
+
+		if (&value >= cbegin() && &value < cend()) {
+			auto temp{ value };
+			assign(count, std::move(temp));
+			return;
+		}
+
+		if (count > _capacity) {
 			auto* new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * count)) };
 
 			size_type i{};
@@ -881,7 +888,68 @@ namespace nstd
 			_length = count;
 		}
 		else if (count > _length) {
+			// There is enough space for count elements, but only _length positions are initialized other are initialized.
+			std::fill_n(_data, _length, value);
+			std::uninitialized_fill_n(_data + _length, count - _length, value);
+			_length = count;
+		}
+		else {
+			std::fill_n(_data, count, value);
+			std::destroy_n(_data + count, _length - count);
+			_length = count;
+		}
+	}
 
+	template<typename T>
+	void vector<T>::assign(std::initializer_list<T> ilist) {
+		// We already have assignment operator taking init list.
+		*this = ilist;
+	};
+	template<typename T>
+	template<typename Iter>
+	void vector<T>::assign(Iter first, Iter last) {
+		auto count{ static_cast<size_type>(std::distance(first, last)) };
+
+		if (count == 0) {
+			clear();
+			::operator delete(_data);
+			_capacity = 0;
+			_data = nullptr;
+			return;
+		}
+
+		if (count > _capacity) {
+			auto* new_mem{ static_cast<pointer>(::operator new(sizeof(value_type) * count)) };
+
+			size_type i = 0;
+			auto current{ first };
+			try {
+				for (; i < count; ++i, ++current) {
+					std::construct_at(new_mem + i, *current);
+				}
+			}
+			catch (...) {
+				std::destroy(new_mem, new_mem + i);
+				::operator delete(new_mem);
+				throw;
+			}
+			clear();
+			::operator delete(_data);
+			_data = new_mem;
+			_capacity = count;
+			_length = count;
+		}
+		else if (count > _length) {
+			auto mid = first;
+			std::advance(mid, _length);
+			std::copy(first, mid, _data);
+			std::uninitialized_copy(mid, last, _data + _length);
+			_length = count;
+		}
+		else {
+			std::copy(first, last, _data);
+			std::destroy_n(_data + count, _length - count);
+			_length = count;
 		}
 	}
 
