@@ -93,7 +93,7 @@ namespace nstd
 
 		void assign(size_type count, const_reference value);
 		void assign(std::initializer_list<T> ilist);
-		template<typename InputIt>
+		template<std::input_iterator InputIt>
 		void assign(InputIt first, InputIt last);
 
 		iterator erase(const_iterator pos);
@@ -905,8 +905,9 @@ namespace nstd
 		// We already have assignment operator taking init list.
 		*this = ilist;
 	};
+
 	template<typename T>
-	template<typename Iter>
+	template<std::input_iterator Iter>
 	void vector<T>::assign(Iter first, Iter last) {
 		auto count{ static_cast<size_type>(std::distance(first, last)) };
 

@@ -1319,6 +1319,333 @@ namespace tests
 			std::cout << "PASSED\n";
 		}
 
+		void test_assign_count_value()
+		{
+			std::cout << "[Test] Assign (Count, Value)... ";
+
+			// Assign to empty vector
+			{
+				nstd::vector<int> v;
+				v.assign(5, 42);
+				assert(v.size() == 5);
+				assert(v[0] == 42 && v[4] == 42);
+			}
+
+			// Assign zero count (clear vector)
+			{
+				nstd::vector<int> v = { 1, 2, 3 };
+				v.assign(0, 99);
+				assert(v.is_empty());
+				assert(v.get_capacity() == 0);
+				assert(v.data() == nullptr);
+			}
+
+			// Assign to non-empty (count < current size)
+			{
+				nstd::vector<int> v = { 1, 2, 3, 4, 5 };
+				v.assign(3, 10);
+				assert(v.size() == 3);
+				assert(v[0] == 10 && v[1] == 10 && v[2] == 10);
+			}
+
+			// Assign to non-empty (count > current size, count <= capacity)
+			{
+				nstd::vector<int> v;
+				v.reserve(10);
+				v.assign(3, 5);
+				v.assign(7, 20);
+				assert(v.size() == 7);
+				assert(v[0] == 20 && v[6] == 20);
+			}
+
+			// Assign to non-empty (count > capacity, requires reallocation)
+			{
+				nstd::vector<int> v = { 1, 2 };
+				v.shrink_to_fit();
+				size_t old_cap = v.get_capacity();
+				v.assign(100, 7);
+				assert(v.size() == 100);
+				assert(v.get_capacity() >= 100);
+				assert(v[0] == 7 && v[99] == 7);
+			}
+
+			// Assign with objects (memory tracking)
+			{
+				nstd::vector<Obj> v;
+				v.push_back(Obj(1));
+				v.push_back(Obj(2));
+				assert(Obj::alive_count == 2);
+
+				v.assign(4, Obj(99));
+				assert(v.size() == 4);
+				assert(Obj::alive_count == 4);
+				assert(v[0].value == 99 && v[3].value == 99);
+			}
+
+			// Assign with self-reference (aliasing safety)
+			{
+				nstd::vector<int> v = { 10, 20, 30 };
+				v.assign(5, v[1]);
+				assert(v.size() == 5);
+				assert(v[0] == 20 && v[4] == 20);
+			}
+
+			// Assign with self-reference requiring reallocation
+			{
+				nstd::vector<int> v = { 5, 6, 7 };
+				v.shrink_to_fit();
+				v.assign(100, v[2]);
+				assert(v.size() == 100);
+				assert(v[0] == 7 && v[99] == 7);
+			}
+
+			Obj::verify_no_leaks();
+			std::cout << "PASSED\n";
+		}
+
+		void test_assign_initializer_list()
+		{
+			std::cout << "[Test] Assign (Initializer List)... ";
+
+			// Assign to empty vector
+			{
+				nstd::vector<int> v;
+				v.assign({ 1, 2, 3, 4, 5 });
+				assert(v.size() == 5);
+				assert(v[0] == 1 && v[4] == 5);
+			}
+
+			// Assign empty list (clear vector)
+			{
+				nstd::vector<int> v = { 1, 2, 3 };
+				v.assign({});
+				assert(v.is_empty());
+			}
+
+			// Assign to non-empty (smaller list)
+			{
+				nstd::vector<int> v = { 1, 2, 3, 4, 5 };
+				v.assign({ 10, 20 });
+				assert(v.size() == 2);
+				assert(v[0] == 10 && v[1] == 20);
+			}
+
+			// Assign to non-empty (larger list)
+			{
+				nstd::vector<int> v = { 1, 2 };
+				v.assign({ 5, 10, 15, 20, 25 });
+				assert(v.size() == 5);
+				assert(v[0] == 5 && v[4] == 25);
+			}
+
+			// Assign with objects
+			{
+				nstd::vector<Obj> v;
+				v.push_back(Obj(1));
+				assert(Obj::alive_count == 1);
+
+				v.assign({ Obj(10), Obj(20), Obj(30) });
+				assert(v.size() == 3);
+				assert(Obj::alive_count == 3);
+				assert(v[0].value == 10 && v[2].value == 30);
+			}
+
+			// Multiple assigns
+			{
+				nstd::vector<int> v;
+				v.assign({ 1, 2, 3 });
+				assert(v.size() == 3);
+				v.assign({ 10, 20, 30, 40 });
+				assert(v.size() == 4);
+				v.assign({ 99 });
+				assert(v.size() == 1);
+				assert(v[0] == 99);
+			}
+
+			Obj::verify_no_leaks();
+			std::cout << "PASSED\n";
+		}
+
+		void test_assign_iterator_range()
+		{
+			std::cout << "[Test] Assign (Iterator Range)... ";
+
+			// Assign from std::vector (random access iterators)
+			{
+				nstd::vector<int> v;
+				std::vector<int> source = { 1, 2, 3, 4, 5 };
+				v.assign(source.begin(), source.end());
+				assert(v.size() == 5);
+				assert(v[0] == 1 && v[4] == 5);
+			}
+
+			// Assign empty range
+			{
+				nstd::vector<int> v = { 1, 2, 3 };
+				std::vector<int> empty;
+				v.assign(empty.begin(), empty.end());
+				assert(v.is_empty());
+				assert(v.get_capacity() == 0);
+				assert(v.data() == nullptr);
+			}
+
+			// Assign partial range
+			{
+				nstd::vector<int> v;
+				std::vector<int> source = { 10, 20, 30, 40, 50 };
+				v.assign(source.begin() + 1, source.begin() + 4);
+				assert(v.size() == 3);
+				assert(v[0] == 20 && v[1] == 30 && v[2] == 40);
+			}
+
+			// Assign to non-empty (smaller range)
+			{
+				nstd::vector<int> v = { 1, 2, 3, 4, 5 };
+				std::vector<int> source = { 10, 20 };
+				v.assign(source.begin(), source.end());
+				assert(v.size() == 2);
+				assert(v[0] == 10 && v[1] == 20);
+			}
+
+			// Assign to non-empty (larger range, within capacity)
+			{
+				nstd::vector<int> v;
+				v.reserve(10);
+				v.assign({ 1, 2, 3 });
+				std::vector<int> source = { 5, 6, 7, 8, 9 };
+				v.assign(source.begin(), source.end());
+				assert(v.size() == 5);
+				assert(v[0] == 5 && v[4] == 9);
+			}
+
+			// Assign to non-empty (larger range, requires reallocation)
+			{
+				nstd::vector<int> v = { 1, 2 };
+				v.shrink_to_fit();
+				std::vector<int> source(100, 42);
+				v.assign(source.begin(), source.end());
+				assert(v.size() == 100);
+				assert(v[0] == 42 && v[99] == 42);
+			}
+
+			// Assign with objects
+			{
+				nstd::vector<Obj> v;
+				v.push_back(Obj(1));
+				std::vector<Obj> source;
+				source.push_back(Obj(10));
+				source.push_back(Obj(20));
+				source.push_back(Obj(30));
+
+				v.assign(source.begin(), source.end());
+				assert(v.size() == 3);
+				assert(v[0].value == 10 && v[2].value == 30);
+			}
+
+			// Assign from array (raw pointers)
+			{
+				nstd::vector<int> v;
+				int arr[] = { 100, 200, 300 };
+				v.assign(arr, arr + 3);
+				assert(v.size() == 3);
+				assert(v[0] == 100 && v[2] == 300);
+			}
+
+			// Assign from another nstd::vector
+			{
+				nstd::vector<int> v1 = { 1, 2, 3, 4 };
+				nstd::vector<int> v2;
+				v2.assign(v1.begin(), v1.end());
+				assert(v2.size() == 4);
+				assert(v2[0] == 1 && v2[3] == 4);
+			}
+
+			Obj::verify_no_leaks();
+			std::cout << "PASSED\n";
+		}
+
+		void test_assign_edge_cases()
+		{
+			std::cout << "[Test] Assign Edge Cases... ";
+
+			// Assign count=0 to empty vector
+			{
+				nstd::vector<int> v;
+				v.assign(0, 42);
+				assert(v.is_empty());
+				assert(v.data() == nullptr);
+			}
+
+			// Assign same size (no reallocation)
+			{
+				nstd::vector<int> v = { 1, 2, 3 };
+				size_t cap = v.get_capacity();
+				v.assign(3, 99);
+				assert(v.size() == 3);
+				assert(v.get_capacity() == cap);
+				assert(v[0] == 99 && v[2] == 99);
+			}
+
+			// Assign large count
+			{
+				nstd::vector<int> v;
+				v.assign(10000, 7);
+				assert(v.size() == 10000);
+				assert(v[0] == 7 && v[9999] == 7);
+			}
+
+			// Multiple consecutive assigns
+			{
+				nstd::vector<int> v;
+				v.assign(5, 1);
+				assert(v.size() == 5);
+				v.assign(10, 2);
+				assert(v.size() == 10 && v[9] == 2);
+				v.assign(3, 3);
+				assert(v.size() == 3 && v[2] == 3);
+				v.assign(0, 4);
+				assert(v.is_empty());
+			}
+
+			// Assign after clear
+			{
+				nstd::vector<int> v = { 1, 2, 3 };
+				v.clear();
+				v.assign(4, 99);
+				assert(v.size() == 4);
+				assert(v[3] == 99);
+			}
+
+			// Assign move-only types
+			{
+				nstd::vector<MoveOnly> v;
+				std::vector<MoveOnly> source;
+				source.push_back(MoveOnly(1));
+				source.push_back(MoveOnly(2));
+				v.assign(std::make_move_iterator(source.begin()),
+					std::make_move_iterator(source.end()));
+				assert(v.size() == 2);
+				assert(v[0].value == 1 && v[1].value == 2);
+			}
+
+			// Assign with complex objects
+			{
+				struct Complex {
+					std::string s;
+					int x;
+					Complex(const std::string& str, int val) : s(str), x(val) {}
+				};
+
+				nstd::vector<Complex> v;
+				v.assign(3, Complex("test", 42));
+				assert(v.size() == 3);
+				assert(v[0].s == "test" && v[0].x == 42);
+			}
+
+			Obj::verify_no_leaks();
+			std::cout << "PASSED\n";
+		}
+
 		// ==========================================
 		// MAIN RUNNER
 		// ==========================================
@@ -1335,6 +1662,12 @@ namespace tests
 			test_access_and_capacity();
 			test_modifiers_basic();
 			test_resize();
+
+			// Assign methods
+			test_assign_count_value();
+			test_assign_initializer_list();
+			test_assign_iterator_range();
+			test_assign_edge_cases();
 
 			// Insert/Erase
 			test_insert_single();
@@ -1365,7 +1698,7 @@ namespace tests
 
 			std::cout << "\n==========================================\n";
 			std::cout << "  ALL TESTS PASSED SUCCESSFULLY!\n";
-			std::cout << "  Total: 26 test suites\n";
+			std::cout << "  Total: 30 test suites\n";
 			std::cout << "==========================================\n";
 		}
 	}
