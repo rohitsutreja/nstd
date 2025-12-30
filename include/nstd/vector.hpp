@@ -204,32 +204,48 @@ namespace nstd
 			return;
 		}
 
-		_capacity = list.size();
-		_data = static_cast<T*>(::operator new(sizeof(T) * _capacity));
+		//_capacity = list.size();
+		//_data = static_cast<T*>(::operator new(sizeof(T) * _capacity));
 
-		try
+		//try
+		//{
+		//	for (const auto& item : list)
+		//	{
+		//		std::construct_at(_data + _length, item);
+		//		++_length;
+		//	}
+		//}
+		//catch (...)
+		//{
+		//	std::destroy(_data, _data + _length);
+		//	::operator delete(_data);
+		//	throw;
+		//}
+
+
+		// Because we are using Delegating constructor, destructor will run in case of exception which clean up memory anyways.
+		reserve(list.size());
+
+		for (const auto& item : list)
 		{
-			for (const auto& item : list)
-			{
-				std::construct_at(_data + _length, item);
-				++_length;
-			}
+			std::construct_at(_data + _length, item);
+			++_length;
 		}
-		catch (...)
-		{
-			std::destroy(_data, _data + _length);
-			::operator delete(_data);
-			throw;
-		}
+
+		// OR
+
+
+		// assign(list);
 	}
 
 	template<typename T>
-	vector<T>::vector(size_type count, const_reference value)
+	vector<T>::vector(size_type count, const_reference value) : vector()
 	{
 		reserve(count);
 
 		for (size_type i{}; i < count; ++i) {
-			std::construct_at(_data + _length++, value);
+			std::construct_at(_data + _length, value);
+			++_length;
 		}
 	}
 
@@ -257,7 +273,8 @@ namespace nstd
 
 			for (const auto& elem : other)
 			{
-				std::construct_at(_data + _length++, elem);
+				std::construct_at(_data + _length, elem);
+				++_length;
 			}
 		}
 		catch (...)
@@ -281,13 +298,14 @@ namespace nstd
 
 	template<typename T>
 	template<typename Iter>
-	inline vector<T>::vector(Iter first, Iter last)
+	inline vector<T>::vector(Iter first, Iter last) : vector()
 	{
 		auto size{ std::distance(first, last) };
 		if (size > 0) {
 			reserve(size);
 			for (; first != last; ++first) {
-				std::construct_at(_data + _length++, *first);
+				std::construct_at(_data + _length, *first);
+				++_length;
 			}
 		}
 	}
@@ -372,7 +390,7 @@ namespace nstd
 			clear();
 			::operator delete(_data);
 			_capacity = 0;
-			_data = 0;
+			_data = nullptr;
 			return *this;
 		}
 
