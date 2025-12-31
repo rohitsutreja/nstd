@@ -7,7 +7,7 @@ namespace nstd {
 		template<typename R, typename... Args>
 		class Callable {
 		public:
-			virtual R invoke(Args...) const = 0;
+			virtual R invoke(Args...) = 0;
 			virtual nstd::unique_ptr<Callable> clone() const = 0;
 			virtual ~Callable() = default;
 		};
@@ -17,14 +17,15 @@ namespace nstd {
 		public:
 			T _callable;
 
-			CallableImpl(T&& callable) : _callable{ std::move(callable) } {}
+			template<typename U = T>
+			CallableImpl(U&& callable) : _callable{ std::forward<U>(callable) } {}
 
-			R invoke(Args... args) const override  {
+			R invoke(Args... args) override {
 				return _callable(args...);
 			}
 
 			nstd::unique_ptr<Callable<R, Args...>> clone() const override {
-				return nstd::make_unique<CallableImpl>(T{ _callable });
+				return nstd::make_unique<CallableImpl>(_callable);
 			}
 		};
 	}
@@ -37,13 +38,17 @@ namespace nstd {
 	template<typename R, typename ...Args>
 	class function<R(Args...)> {
 	public:
+		function() = default;
+
+		function(std::nullptr_t) : function() {}
+
 		template<typename T>
 		function(T&& callable) requires(!std::is_same_v<function, std::decay_t<T>>) {
 			_callable = nstd::make_unique<detail::CallableImpl<std::decay_t<T>, R, Args...>>(std::forward<T>(callable));
 		}
 
 		function(const function& other) {
-			if (other._callable) {
+			if (other) {
 				_callable = other._callable->clone();
 			}
 			else {
@@ -52,6 +57,22 @@ namespace nstd {
 		};
 
 		function(function&& other) noexcept : _callable{ std::move(other._callable) } {};
+
+		function& operator=(const function& other) {
+			if (other) {
+				_callable = other._callable->clone();
+			}
+			else {
+				_callable = nullptr;
+			}
+
+			return *this;
+		};
+
+		function& operator=(function&& other) {
+			_callable = std::move(other._callable);
+			return *this;
+		}
 
 		explicit operator bool() const noexcept {
 			return _callable;

@@ -51,6 +51,10 @@ namespace nstd {
 			return *_ptr;
 		}
 
+		constexpr operator bool() const noexcept {
+			return _ptr;
+		}
+
 		constexpr void reset(T* new_ptr = nullptr) {
 			delete _ptr;
 			_ptr = new_ptr;
