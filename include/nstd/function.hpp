@@ -21,7 +21,7 @@ namespace nstd {
 			CallableImpl(U&& callable) : _callable{ std::forward<U>(callable) } {}
 
 			R invoke(Args... args) override {
-				return _callable(args...);
+				return _callable(std::forward<Args>(args)...);
 			}
 
 			nstd::unique_ptr<Callable<R, Args...>> clone() const override {
@@ -78,8 +78,8 @@ namespace nstd {
 			return _callable;
 		};
 
-		R operator()(Args... args) {
-			return _callable->invoke(args...);
+		R operator()(Args... args) const {
+			return _callable->invoke(std::forward<Args>(args)...);
 		}
 
 	private:
