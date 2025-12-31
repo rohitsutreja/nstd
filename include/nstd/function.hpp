@@ -59,18 +59,16 @@ namespace nstd {
 		function(function&& other) noexcept : _callable{ std::move(other._callable) } {};
 
 		function& operator=(const function& other) {
-			if (other) {
-				_callable = other._callable->clone();
+			if (this != &other) {
+				_callable = other ? other._callable->clone() : nullptr;
 			}
-			else {
-				_callable = nullptr;
-			}
-
 			return *this;
 		};
 
-		function& operator=(function&& other) {
-			_callable = std::move(other._callable);
+		function& operator=(function&& other) noexcept {
+			if (this != &other) {
+				_callable = std::move(other._callable);
+			}
 			return *this;
 		}
 
@@ -79,7 +77,15 @@ namespace nstd {
 		};
 
 		R operator()(Args... args) const {
+			if (!_callable) {
+				throw std::bad_function_call();
+			}
 			return _callable->invoke(std::forward<Args>(args)...);
+		}
+
+
+		friend void swap(function& first, function& second) noexcept {
+			std::swap(first._callable, second._callable);
 		}
 
 	private:
