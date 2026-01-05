@@ -47,23 +47,21 @@ namespace nstd {
 
 		template<typename F, typename ...Args>
 		auto enqueue(F&& f, Args&& ...args) {
-			using return_type = typename std::invoke_result<F, Args...>::type;
+			using return_type = std::invoke_result_t<F, Args...>;
 
-			auto bound_task{ std::bind(std::forward<F>(f), std::forward<Args>(args)...) };
+			auto bound_task{ [f = std::forward<F>(f), ...args = std::forward<Args>(args)]() mutable {
+				return std::invoke(std::move(f), std::move(args)...);
+			} };
 
 			auto task_ptr{ nstd::make_shared<std::packaged_task<return_type()>>(std::move(bound_task)) };
 			auto res{ task_ptr->get_future() };
-
-			auto wrapper = [task_ptr]() {
-				(*task_ptr)();
-				};
 
 			{
 				std::unique_lock<std::mutex> lock(_mtx);
 				if (_stop) {
 					throw std::runtime_error("enqueue on stopped ThreadPool");
 				}
-				_tasks.push(std::move(wrapper));
+				_tasks.emplace([task_ptr] { (*task_ptr)(); });
 			}
 
 			_cv.notify_one();
@@ -90,7 +88,7 @@ namespace nstd {
 		std::vector<std::thread> _threads{};
 		std::mutex _mtx{};
 		std::condition_variable _cv{};
-		std::atomic<bool> _stop{};
+		bool _stop{};
 	};
 }
 
