@@ -6,25 +6,28 @@
 #include <iostream>
 #include <condition_variable>
 #include <future>
-#include <nstd/shared_ptr.h>
-
+#include <thread> 
+#include <memory> 
 
 namespace nstd {
 
 	class thread_pool {
-
 	public:
 		explicit thread_pool(int num_threads) : _stop{ false } {
-			for (int i{}; i < num_threads; ++i) {
+			_threads.reserve(num_threads);
+			for (int i = 0; i < num_threads; ++i) {
 				_threads.emplace_back([this]() {
 					while (true) {
-						nstd::function<void()> task{};
+						std::function<void()> task;
 						{
-							std::unique_lock lock{ _mtx };
-							_cv.wait(lock, [this] { return !_task_queue.empty() || _stop; });
+							std::unique_lock<std::mutex> lock(_mtx);
+
+							_cv.wait(lock, [this] {
+								return _stop || !_task_queue.empty();
+								});
 
 							if (_stop && _task_queue.empty()) {
-								break;
+								return;
 							}
 
 							task = std::move(_task_queue.front());
@@ -43,23 +46,23 @@ namespace nstd {
 
 			auto bound_task{ std::bind(std::forward<F>(f), std::forward<Args>(args)...) };
 
-			auto pack_task{ nstd::make_shared<std::packaged_task<return_type()>>(std::move(bound_task)) };
+			auto task_ptr{ std::make_shared<std::packaged_task<return_type()>>(std::move(bound_task)) };
+			auto res{ task_ptr->get_future() };
 
-			auto ret{ pack_task->get_future() };
-
-			auto task{ [pack_task]() {
-				(*pack_task)();
-			} };
-
+			auto wrapper = [task_ptr]() {
+				(*task_ptr)();
+				};
 
 			{
-				std::unique_lock lock{ _mtx };
-				_task_queue.push(std::move(task));
+				std::unique_lock<std::mutex> lock(_mtx);
+				if (_stop) {
+					throw std::runtime_error("enqueue on stopped ThreadPool");
+				}
+				_task_queue.push(std::move(wrapper));
 			}
 
 			_cv.notify_one();
-
-			return ret;
+			return res;
 		}
 
 		~thread_pool() {
@@ -71,17 +74,17 @@ namespace nstd {
 			_cv.notify_all();
 
 			for (auto& worker : _threads) {
-				if (worker.joinable())
-				{
+				if (worker.joinable()) {
 					worker.join();
 				}
 			}
 		}
+
 	private:
-		std::queue<nstd::function<void()>> _task_queue{};
-		std::vector<std::thread> _threads{};
-		std::mutex _mtx{};
-		std::condition_variable _cv{};
-		std::atomic<bool> _stop{};
+		std::queue<std::function<void()>> _task_queue;
+		std::vector<std::thread> _threads;
+		std::mutex _mtx;
+		std::condition_variable _cv;
+		std::atomic<bool> _stop;
 	};
 }
