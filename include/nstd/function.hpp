@@ -3,6 +3,13 @@
 
 namespace nstd {
 
+	class bad_function_call : public std::exception {
+	public:
+		const char* what() const noexcept  override {
+			return "Cannot call empty callable.";
+		}
+	};
+
 	namespace detail {
 		template<typename R, typename... Args>
 		class Callable {
@@ -78,7 +85,7 @@ namespace nstd {
 
 		R operator()(Args... args) const {
 			if (!_callable) {
-				throw std::bad_function_call();
+				throw nstd::bad_function_call();
 			}
 			return _callable->invoke(std::forward<Args>(args)...);
 		}
