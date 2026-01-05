@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NSTD_SHARED_PTR_HPP
+#define NSTD_SHARED_PTR_HPP
 
 #include <cstddef> 
 
@@ -93,3 +94,5 @@ namespace nstd {
 		return shared_ptr<T>{new T(std::forward<Args>(args)...)};
 	}
 };
+
+#endif

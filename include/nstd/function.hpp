@@ -1,3 +1,6 @@
+#ifndef NSTD_FUNCTION_HPP
+#define NSTD_FUNCTION_HPP
+
 #include <memory>
 #include "nstd/unique_ptr.h"
 
@@ -99,3 +102,5 @@ namespace nstd {
 		nstd::unique_ptr<detail::Callable<R, Args...>> _callable{};
 	};
 }
+
+#endif

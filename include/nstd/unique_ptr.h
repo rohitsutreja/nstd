@@ -1,3 +1,6 @@
+#ifndef NSTD_UNIQUE_PTR_HPP
+#define NSTD_UNIQUE_PTR_HPP
+
 #include <utility>
 #include <type_traits>
 #include <cstddef>
@@ -81,3 +84,5 @@ namespace nstd {
 	}
 
 }
+
+#endif

@@ -1,13 +1,18 @@
+#ifndef NSTD_THREAD_POOL_HPP
+#define NSTD_THREAD_POOL_HPP
+
 #include <vector>
 #include <queue>
 #include <mutex>
 #include <atomic>
-#include <functional>
 #include <iostream>
 #include <condition_variable>
 #include <future>
 #include <thread> 
 #include <memory> 
+
+#include "nstd/function.hpp"
+#include "nstd/shared_ptr.h"
 
 namespace nstd {
 
@@ -18,7 +23,7 @@ namespace nstd {
 			for (int i = 0; i < num_threads; ++i) {
 				_threads.emplace_back([this]() {
 					while (true) {
-						std::function<void()> task;
+						nstd::function<void()> task;
 						{
 							std::unique_lock<std::mutex> lock(_mtx);
 
@@ -46,7 +51,7 @@ namespace nstd {
 
 			auto bound_task{ std::bind(std::forward<F>(f), std::forward<Args>(args)...) };
 
-			auto task_ptr{ std::make_shared<std::packaged_task<return_type()>>(std::move(bound_task)) };
+			auto task_ptr{ nstd::make_shared<std::packaged_task<return_type()>>(std::move(bound_task)) };
 			auto res{ task_ptr->get_future() };
 
 			auto wrapper = [task_ptr]() {
@@ -81,10 +86,12 @@ namespace nstd {
 		}
 
 	private:
-		std::queue<std::function<void()>> _task_queue;
+		std::queue<nstd::function<void()>> _task_queue;
 		std::vector<std::thread> _threads;
 		std::mutex _mtx;
 		std::condition_variable _cv;
 		std::atomic<bool> _stop;
 	};
 }
+
+#endif
