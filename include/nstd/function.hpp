@@ -2,7 +2,8 @@
 #define NSTD_FUNCTION_HPP
 
 #include <memory>
-#include "nstd/unique_ptr.h"
+
+#include "nstd/unique_ptr.hpp"
 
 namespace nstd {
 

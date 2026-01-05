@@ -12,7 +12,7 @@
 #include <memory> 
 
 #include "nstd/function.hpp"
-#include "nstd/shared_ptr.h"
+#include "nstd/shared_ptr.hpp"
 
 namespace nstd {
 
@@ -28,15 +28,15 @@ namespace nstd {
 							std::unique_lock<std::mutex> lock(_mtx);
 
 							_cv.wait(lock, [this] {
-								return _stop || !_task_queue.empty();
+								return _stop || !_tasks.empty();
 								});
 
-							if (_stop && _task_queue.empty()) {
+							if (_stop && _tasks.empty()) {
 								return;
 							}
 
-							task = std::move(_task_queue.front());
-							_task_queue.pop();
+							task = std::move(_tasks.front());
+							_tasks.pop();
 						}
 
 						task();
@@ -63,7 +63,7 @@ namespace nstd {
 				if (_stop) {
 					throw std::runtime_error("enqueue on stopped ThreadPool");
 				}
-				_task_queue.push(std::move(wrapper));
+				_tasks.push(std::move(wrapper));
 			}
 
 			_cv.notify_one();
@@ -86,11 +86,11 @@ namespace nstd {
 		}
 
 	private:
-		std::queue<nstd::function<void()>> _task_queue;
-		std::vector<std::thread> _threads;
-		std::mutex _mtx;
-		std::condition_variable _cv;
-		std::atomic<bool> _stop;
+		std::queue<nstd::function<void()>> _tasks{};
+		std::vector<std::thread> _threads{};
+		std::mutex _mtx{};
+		std::condition_variable _cv{};
+		std::atomic<bool> _stop{};
 	};
 }
 

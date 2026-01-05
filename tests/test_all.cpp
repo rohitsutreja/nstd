@@ -4,6 +4,7 @@
 #include "test_stack.hpp"
 #include "test_expected.hpp"
 #include "test_function.hpp"
+#include "test_thread_pool.hpp"
 
 // ------------------------- Main Test Runner -------------------------
 int main()
@@ -53,8 +54,13 @@ int main()
 	std::cout << "\n=== Function Tests ===\n";
 	tests::function::run_all_tests();
 
+	std::cout << "\n=== Thread Pool Tests ===\n";
+	tests::thread_pool::run_all_tests();
+
 	std::cout << "\n=== All nstd tests passed! ===\n";
 	std::cout << "Your nstd implementations are robust and ready for use!\n";
+
+
 
 	return 0;
 }
