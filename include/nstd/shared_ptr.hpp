@@ -13,13 +13,13 @@ namespace nstd {
 		constexpr shared_ptr(std::nullptr_t) noexcept : _ptr{ nullptr }, _ref_count{ nullptr } {}
 
 		constexpr explicit shared_ptr(T* ptr)
-			: _ptr{ ptr }, _ref_count{ new size_t{1} } {
+			: _ptr{ ptr }, _ref_count{ new std::atomic<size_t>{1} } {
 		}
 
 		constexpr shared_ptr(const shared_ptr& other) noexcept
 			: _ptr{ other._ptr }, _ref_count{ other._ref_count } {
 			if (_ref_count) {
-				++(*_ref_count);
+				_ref_count->fetch_add(1);
 			}
 		}
 
@@ -39,7 +39,7 @@ namespace nstd {
 				_ref_count = other._ref_count;
 
 				if (_ref_count) {
-					++(*_ref_count);
+					_ref_count->fetch_add(1);
 				}
 			}
 			return *this;
@@ -70,7 +70,7 @@ namespace nstd {
 
 	private:
 		T* _ptr{};
-		size_t* _ref_count{};
+		std::atomic<size_t>* _ref_count{};
 
 		constexpr void _release_resource() {
 			if (!_ref_count)
@@ -78,8 +78,7 @@ namespace nstd {
 				return;
 			}
 
-			--(*_ref_count);
-			if (*_ref_count == 0) {
+			if (_ref_count->fetch_sub(1) == 1) {
 				delete _ptr;
 				delete _ref_count;
 			}
