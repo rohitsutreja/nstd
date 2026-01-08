@@ -41,7 +41,7 @@ namespace nstd
         auto operator<=>(const array &other) const;
         bool operator==(const array &other) const;
 
-    private:
+
         T _data[N];
     };
 
