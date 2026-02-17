@@ -7,101 +7,94 @@
 
 namespace nstd {
 
-	class bad_function_call : public std::exception {
-	public:
-		const char* what() const noexcept  override {
-			return "Cannot call empty callable.";
-		}
-	};
+class bad_function_call : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "Cannot call empty callable.";
+    }
+};
 
-	namespace detail {
-		template<typename R, typename... Args>
-		class Callable {
-		public:
-			virtual R invoke(Args...) = 0;
-			virtual nstd::unique_ptr<Callable> clone() const = 0;
-			virtual ~Callable() = default;
-		};
+namespace detail {
+template<typename R, typename... Args> class Callable {
+public:
+    virtual R invoke(Args...) = 0;
+    virtual nstd::unique_ptr<Callable> clone() const = 0;
+    virtual ~Callable() = default;
+};
 
-		template<typename T, typename R, typename... Args>
-		class CallableImpl : public Callable<R, Args...> {
-		public:
-			T _callable;
+template<typename T, typename R, typename... Args>
+class CallableImpl : public Callable<R, Args...> {
+public:
+    T _callable;
 
-			template<typename U = T>
-			CallableImpl(U&& callable) : _callable{ std::forward<U>(callable) } {}
+    template<typename U = T> CallableImpl(U&& callable) : _callable{std::forward<U>(callable)} {}
 
-			R invoke(Args... args) override {
-				return _callable(std::forward<Args>(args)...);
-			}
+    R invoke(Args... args) override {
+        return _callable(std::forward<Args>(args)...);
+    }
 
-			nstd::unique_ptr<Callable<R, Args...>> clone() const override {
-				return nstd::make_unique<CallableImpl>(_callable);
-			}
-		};
-	}
+    nstd::unique_ptr<Callable<R, Args...>> clone() const override {
+        return nstd::make_unique<CallableImpl>(_callable);
+    }
+};
+} // namespace detail
 
+template<typename Signature> class function;
 
+template<typename R, typename... Args> class function<R(Args...)> {
+public:
+    function() = default;
 
-	template<typename Signature>
-	class function;
+    function(std::nullptr_t) : function() {}
 
-	template<typename R, typename ...Args>
-	class function<R(Args...)> {
-	public:
-		function() = default;
+    template<typename T>
+    function(T&& callable) requires(!std::is_same_v<function, std::decay_t<T>>) {
+        _callable = nstd::make_unique<detail::CallableImpl<std::decay_t<T>, R, Args...>>(
+            std::forward<T>(callable));
+    }
 
-		function(std::nullptr_t) : function() {}
+    function(const function& other) {
+        if (other) {
+            _callable = other._callable->clone();
+        } else {
+            _callable = nullptr;
+        }
+    };
 
-		template<typename T>
-		function(T&& callable) requires(!std::is_same_v<function, std::decay_t<T>>) {
-			_callable = nstd::make_unique<detail::CallableImpl<std::decay_t<T>, R, Args...>>(std::forward<T>(callable));
-		}
+    function(function&& other) noexcept : _callable{std::move(other._callable)} {};
 
-		function(const function& other) {
-			if (other) {
-				_callable = other._callable->clone();
-			}
-			else {
-				_callable = nullptr;
-			}
-		};
+    function& operator=(const function& other) {
+        if (this != &other) {
+            _callable = other ? other._callable->clone() : nullptr;
+        }
+        return *this;
+    };
 
-		function(function&& other) noexcept : _callable{ std::move(other._callable) } {};
+    function& operator=(function&& other) noexcept {
+        if (this != &other) {
+            _callable = std::move(other._callable);
+        }
+        return *this;
+    }
 
-		function& operator=(const function& other) {
-			if (this != &other) {
-				_callable = other ? other._callable->clone() : nullptr;
-			}
-			return *this;
-		};
+    explicit operator bool() const noexcept {
+        return _callable;
+    };
 
-		function& operator=(function&& other) noexcept {
-			if (this != &other) {
-				_callable = std::move(other._callable);
-			}
-			return *this;
-		}
+    R operator()(Args... args) const {
+        if (!_callable) {
+            throw nstd::bad_function_call();
+        }
+        return _callable->invoke(std::forward<Args>(args)...);
+    }
 
-		explicit operator bool() const noexcept {
-			return _callable;
-		};
+    friend void swap(function& first, function& second) noexcept {
+        std::swap(first._callable, second._callable);
+    }
 
-		R operator()(Args... args) const {
-			if (!_callable) {
-				throw nstd::bad_function_call();
-			}
-			return _callable->invoke(std::forward<Args>(args)...);
-		}
-
-
-		friend void swap(function& first, function& second) noexcept {
-			std::swap(first._callable, second._callable);
-		}
-
-	private:
-		nstd::unique_ptr<detail::Callable<R, Args...>> _callable{};
-	};
-}
+private:
+    nstd::unique_ptr<detail::Callable<R, Args...>> _callable{};
+};
+} // namespace nstd
 
 #endif

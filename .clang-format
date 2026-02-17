@@ -1,0 +1,46 @@
+
+Language: Cpp
+# Inherit the defacto standard for C++ systems programming
+BasedOnStyle: LLVM
+
+# --- Core Formatting ---
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100 # 80 is too restrictive for modern C++ templates
+
+# --- Modern C++20 Standards ---
+Standard: Latest
+BreakBeforeConceptDeclarations: true
+
+# --- Pointers and References ---
+# Enforces 'T* ptr' and 'T& ref' (Left alignment)
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# --- Braces and Blocks ---
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+
+# --- Classes and Structs ---
+AccessModifierOffset: -4 # Puts 'public:' flush with the class definition
+ConstructorInitializerIndentWidth: 4
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: NextLine
+
+# --- Namespaces ---
+NamespaceIndentation: None
+CompactNamespaces: false
+FixNamespaceComments: true # Automatically adds '// namespace nstd' at the end
+
+# --- Spaces ---
+SpaceAfterTemplateKeyword: false # 'template<typename T>' instead of 'template <typename T>'
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: Never
+SpacesInContainerLiterals: false
